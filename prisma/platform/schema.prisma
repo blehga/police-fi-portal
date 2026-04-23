@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/generated/platform-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("PLATFORM_DATABASE_URL")
+}
+
+model Organization {
+  id            BigInt                   @id @default(autoincrement())
+  name          String                   @db.VarChar(255)
+  slug          String                   @unique(map: "slug") @db.VarChar(100)
+  type          String?                  @db.VarChar(50)
+  status        String                   @default("pending") @db.VarChar(50)
+  createdAt     DateTime?                @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime?                @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  database      OrganizationDatabase?
+  subscriptions OrganizationSubscription[]
+
+  @@map("organizations")
+}
+
+model OrganizationDatabase {
+  id             BigInt    @id @default(autoincrement())
+  organizationId BigInt    @unique @map("organization_id")
+  databaseName   String    @map("database_name") @db.VarChar(255)
+  host           String    @db.VarChar(255)
+  port           Int       @default(3306)
+  username       String    @db.VarChar(255)
+  password       String    @db.VarChar(255)
+  status         String    @default("active") @db.VarChar(50)
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  organization Organization @relation(
+    fields: [organizationId],
+    references: [id],
+    onDelete: NoAction,
+    onUpdate: NoAction,
+    map: "fk_org_db_org"
+  )
+
+  @@map("organization_databases")
+}
+
+model SubscriptionPlan {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  code      String   @unique(map: "code") @db.VarChar(50)
+  maxUsers  Int      @default(0) @map("max_users")
+  features  Json?    @map("features_json")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  subscriptions OrganizationSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model OrganizationSubscription {
+  id                 BigInt   @id @default(autoincrement())
+  organizationId     BigInt   @map("organization_id")
+  subscriptionPlanId BigInt   @map("subscription_plan_id")
+  status             String   @default("active") @db.VarChar(50)
+  startDate          DateTime? @map("start_date") @db.DateTime(0)
+  endDate            DateTime? @map("end_date") @db.DateTime(0)
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  organization    Organization    @relation(
+    fields: [organizationId],
+    references: [id],
+    onDelete: NoAction,
+    onUpdate: NoAction,
+    map: "fk_org_subs_org"
+  )
+  subscriptionPlan SubscriptionPlan @relation(
+    fields: [subscriptionPlanId],
+    references: [id],
+    onDelete: NoAction,
+    onUpdate: NoAction,
+    map: "fk_org_subs_plan"
+  )
+
+  @@index([organizationId], map: "fk_org_subs_org")
+  @@index([subscriptionPlanId], map: "fk_org_subs_plan")
+  @@map("organization_subscriptions")
+}

@@ -1,0 +1,361 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum CaseFormType {
+  FI
+  NARRATIVE
+}
+
+model User {
+  id             String     @id @default(cuid())
+  username       String     @unique(map: "User_username_key")
+  email          String?    @unique(map: "User_email_key")
+  passwordHash   String
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  firstName      String?
+  lastName       String?
+  badgeId        String?
+  sessionVersion Int        @default(1)
+
+  roles          UserRole[]
+
+  casesCreated   Case[]     @relation("CaseCreatedBy")
+  formsCreated   CaseForm[] @relation("CaseFormCreatedBy")
+  fiCards        FICard[]
+  narratives     Narrative[]
+
+  @@map("user")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique(map: "Role_name_key")
+  permissions RolePermission[] @relation("RoleToRolePermission")
+  users       UserRole[]
+
+  @@map("role")
+}
+
+model Permission {
+  id    String           @id @default(cuid())
+  code  String           @unique(map: "Permission_code_key")
+  roles RolePermission[] @relation("PermissionToRolePermission")
+
+  @@map("permission")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  permission   Permission @relation("PermissionToRolePermission", fields: [permissionId], references: [id], onDelete: Cascade, map: "RolePermission_permissionId_fkey")
+  role         Role       @relation("RoleToRolePermission", fields: [roleId], references: [id], onDelete: Cascade, map: "RolePermission_roleId_fkey")
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "RolePermission_permissionId_fkey")
+  @@map("rolepermission")
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "UserRole_roleId_fkey")
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserRole_userId_fkey")
+
+  @@id([userId, roleId])
+  @@index([roleId], map: "UserRole_roleId_fkey")
+  @@map("userrole")
+}
+
+model AuditLog {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId      Int?     @map("user_id")
+  actorUserId String?  @map("actor_user_id") @db.VarChar(64)
+  action      String   @db.VarChar(20)
+  entity      String   @db.VarChar(50)
+  entityId    String?  @map("entity_id") @db.VarChar(50)
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(0)
+
+  @@index([action], map: "idx_audit_action")
+  @@index([actorUserId], map: "idx_audit_actor_user_id")
+  @@index([createdAt], map: "idx_audit_created_at")
+  @@index([entity, entityId], map: "idx_audit_entity")
+  @@index([userId], map: "idx_audit_user_id")
+  @@map("audit_log")
+}
+
+model CaseCounter {
+  year Int @id
+  last Int @default(0)
+
+  @@map("casecounter")
+}
+
+model Case {
+  id               String    @id @default(cuid())
+  caseNumber       String    @unique(map: "Case_caseNumber_key")
+  yearYY           Int
+  seq              Int
+  incidentType     String
+  incidentDate     DateTime? @db.Date
+  incidentTime     String?   @db.VarChar(20)
+  incidentLocation String?   @db.VarChar(255)
+  createdById      String
+  isShared         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  createdBy        User      @relation("CaseCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  forms            CaseForm[]
+  persons          Person[]
+
+  @@index([caseNumber], map: "Case_caseNumber_idx")
+  @@index([incidentType], map: "Case_incidentType_idx")
+  @@index([incidentDate], map: "Case_incidentDate_idx")
+  @@index([createdById], map: "Case_createdById_idx")
+  @@index([isShared], map: "Case_isShared_idx")
+  @@map("cases")
+}
+
+model CaseForm {
+  id          String        @id @default(cuid())
+  caseId      String
+  formType    CaseFormType
+  createdById String
+  isShared    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  case        Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  createdBy   User          @relation("CaseFormCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  fiCard      FICard?
+  narrative   Narrative?
+  formPersons FormPerson[]
+
+  @@index([caseId], map: "CaseForm_caseId_idx")
+  @@index([formType], map: "CaseForm_formType_idx")
+  @@index([createdById], map: "CaseForm_createdById_idx")
+  @@index([isShared], map: "CaseForm_isShared_idx")
+  @@map("case_forms")
+}
+
+model Person {
+  id                 String      @id @default(cuid())
+  caseId             String
+
+  firstName          String?
+  middleName         String?
+  lastName           String?
+  fullName           String?
+  nickname           String?
+
+  dob                DateTime?   @db.Date
+  sex                String?     @db.VarChar(20)
+  age                Int?
+
+  address            String?     @db.VarChar(255)
+  city               String?     @db.VarChar(100)
+  state              String?     @db.VarChar(50)
+  zip                String?     @db.VarChar(20)
+
+  race               String?     @db.VarChar(50)
+  primaryLanguage    String?      @db.VarChar(50)
+  description        String?      @db.Text
+  height             String?     @db.VarChar(20)
+  weight             String?     @db.VarChar(20)
+  build              String?     @db.VarChar(50)
+  eyeColor           String?     @db.VarChar(50)
+  hairColor          String?     @db.VarChar(50)
+  hairLength         String?     @db.VarChar(50)
+  hairStyle          String?     @db.VarChar(100)
+  complexion         String?      @db.VarChar(50)
+  teeth              String?      @db.VarChar(100)
+  handPreference     String?      @db.VarChar(20)
+
+  gangName            String?     @db.VarChar(100)
+  gangMembershipLength String?    @db.VarChar(50)
+  tattoos            String?     @db.Text
+  scars              String?     @db.Text
+  needleMarks        String?     @db.Text
+  tracks             String?     @db.Text
+  glasses            String?     @db.VarChar(100)
+  mustache           String?     @db.VarChar(100)
+  beard              String?     @db.VarChar(100)
+
+  socialSecurity     String?     @db.VarChar(50)
+  driverLicense      String?     @db.VarChar(50)
+  driverLicenseState String?     @db.VarChar(20)
+  otherId            String?     @db.VarChar(100)
+  otherIdType        String?     @db.VarChar(50)
+  otherIdState       String?     @db.VarChar(20)
+
+  email              String?     @db.VarChar(255)
+  phone              String?     @db.VarChar(50)
+  occupation         String?     @db.VarChar(150)
+
+  school             String?     @db.VarChar(150)
+  schoolAddress      String?     @db.VarChar(255)
+  schoolCity         String?     @db.VarChar(100)
+  schoolState        String?     @db.VarChar(50)
+  schoolZip          String?     @db.VarChar(20)
+  schoolPhone        String?     @db.VarChar(50)
+
+  parentName         String?     @db.VarChar(150)
+  parentAddress      String?     @db.VarChar(255)
+  parentCity         String?     @db.VarChar(100)
+  parentState        String?     @db.VarChar(50)
+  parentZip          String?     @db.VarChar(20)
+  parentPhone        String?     @db.VarChar(50)
+
+  employerName       String?     @db.VarChar(150)
+  employerAddress    String?     @db.VarChar(255)
+  employerCity       String?     @db.VarChar(100)
+  employerState      String?     @db.VarChar(50)
+  employerZip        String?     @db.VarChar(20)
+  employerPhone      String?     @db.VarChar(50)
+
+  onParole           Boolean     @default(false)
+  paroleOfficer      String?     @db.VarChar(150)
+  parolePhone        String?     @db.VarChar(50)
+
+  onProbation        Boolean     @default(false)
+  probationOfficer   String?     @db.VarChar(150)
+  probationPhone     String?     @db.VarChar(50)
+
+  vehicleLicense     String?     @db.VarChar(50)
+  vehicleMake        String?      @db.VarChar(100)
+  vehicleModel       String?      @db.VarChar(100)
+  vehicleStyle       String?      @db.VarChar(100)
+  vehicleYear        String?      @db.VarChar(10)
+  vehicleColor       String?     @db.VarChar(50)
+  vehicleOddities    String?     @db.VarChar(255)
+  vehicleState       String?    @db.VarChar(50)
+
+  comments           String?     @db.Text
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  case               Case        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  formPersons        FormPerson[]
+
+  @@index([caseId], map: "Person_caseId_idx")
+  @@index([lastName], map: "Person_lastName_idx")
+  @@index([firstName], map: "Person_firstName_idx")
+  @@map("persons")
+}
+
+model FormPerson {
+  id            String    @id @default(cuid())
+  caseFormId    String
+  personId      String
+
+  role          String
+  movementType  String?   @db.VarChar(30)
+  isPrimary     Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+
+  caseForm      CaseForm  @relation(fields: [caseFormId], references: [id], onDelete: Cascade)
+  person        Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([caseFormId], map: "FormPerson_caseFormId_idx")
+  @@index([personId], map: "FormPerson_personId_idx")
+  @@index([role], map: "FormPerson_role_idx")
+  @@map("form_persons")
+}
+
+model FICard {
+  id                              String    @id @default(cuid())
+  caseFormId                      String    @unique(map: "FICard_caseFormId_key")
+
+  subjectType                     String?
+  agency                          String?   @db.VarChar(150)
+
+  reasonForStop                   String?   @db.VarChar(255)
+  locationOfStop                  String?   @db.VarChar(255)
+  disposition                     String?   @db.VarChar(50)
+
+  distributionGangUnit            Boolean   @default(false)
+  distributionSexCrimes           Boolean   @default(false)
+  distributionRobbery             Boolean   @default(false)
+  distributionNarco               Boolean   @default(false)
+  distributionViceIntel           Boolean   @default(false)
+  distributionOther               Boolean   @default(false)
+  distributionOtherText           String?   @db.VarChar(150)
+
+  gangSelfAdmission               Boolean   @default(false)
+  gangRegistrant                  Boolean   @default(false)
+  gangAffiliatingWithMembers      Boolean   @default(false)
+  gangReliableInformant           Boolean   @default(false)
+  gangClothing                    Boolean   @default(false)
+  gangParticipatingInCrime        Boolean   @default(false)
+  gangHandSigns                   Boolean   @default(false)
+  gangTattoos                     Boolean   @default(false)
+  gangFrequentingArea             Boolean   @default(false)
+
+  additionalComments              String?   @db.LongText
+
+  officerName                     String?   @db.VarChar(150)
+  officerId                       String?   @db.VarChar(50)
+  beat                            String?   @db.VarChar(50)
+  fiDate                          DateTime? @db.Date
+  fiDay                           String?   @db.VarChar(20)
+  fiTime                          String?   @db.VarChar(20)
+
+  createdById                     String
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+
+  caseForm                        CaseForm  @relation(fields: [caseFormId], references: [id], onDelete: Cascade)
+  createdBy                       User      @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  photos                          FIPhoto[]
+
+  @@index([subjectType], map: "FICard_subjectType_idx")
+  @@index([createdById], map: "FICard_createdById_idx")
+  @@map("ficard")
+}
+
+model Narrative {
+  id            String    @id @default(cuid())
+  caseFormId    String    @unique(map: "Narrative_caseFormId_key")
+  narrativeText String    @db.LongText
+  createdById   String
+  officerName   String?
+  officerId     String?
+  beat          String?
+  narrativeDate DateTime?
+  narrativeDay  String?
+  narrativeTime String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  caseForm      CaseForm  @relation(fields: [caseFormId], references: [id], onDelete: Cascade)
+  createdBy     User      @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([createdById], map: "Narrative_createdById_idx")
+  @@map("narratives")
+}
+
+model FIPhoto {
+  id        String   @id @default(cuid())
+  fiCardId  String
+  url       String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  fiCard    FICard   @relation(fields: [fiCardId], references: [id], onDelete: Cascade, map: "FIPhoto_fiCardId_fkey")
+
+  @@index([fiCardId], map: "FIPhoto_fiCardId_fkey")
+  @@map("fiphoto")
+}
