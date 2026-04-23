@@ -69,20 +69,42 @@ const currentUserId = session?.user?.id;
     const { id } = await context.params;
     const body = await request.json().catch(() => ({}));
 
-    const {
-      subjectType,
-      agency,
-      reasonForStop,
-      locationOfStop,
-      disposition,
-      additionalComments,
-      beat,
-      fiDate,
-      fiDay,
-      fiTime,
-      people = [],
-      photos = [],
-    } = body ?? {};
+   const {
+  subjectType,
+  agency,
+  reasonForStop,
+  locationOfStop,
+  disposition,
+  additionalComments,
+  beat,
+  fiDate,
+  fiDay,
+  fiTime,
+  people = [],
+  photos = [],
+
+  // ✅ ADD THESE
+  incidentType,
+  incidentDate,
+  incidentTime,
+  incidentLocation,
+} = body ?? {};
+
+// ✅ ADD HERE
+if (
+  !String(incidentType ?? "").trim() ||
+  !String(incidentDate ?? "").trim() ||
+  !String(incidentTime ?? "").trim() ||
+  !String(incidentLocation ?? "").trim()
+) {
+  return NextResponse.json(
+    {
+      error:
+        "Incident Type, Incident Date, Incident Time, and Incident Location are required.",
+    },
+    { status: 400 }
+  );
+}
 
     const existingCase = await prisma.case.findFirst({
       where: {

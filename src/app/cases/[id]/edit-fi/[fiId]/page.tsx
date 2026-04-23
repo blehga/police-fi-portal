@@ -522,9 +522,23 @@ export default function EditFIPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedPhotoIndex, viewerPhotos.length]);
 
-  const canSubmit = useMemo(() => {
-    return !readOnlyMode && !loading && !!form.subjectType;
-  }, [readOnlyMode, loading, form.subjectType]);
+const canSubmit = useMemo(() => {
+  return (
+    !readOnlyMode &&
+    !loading &&
+    !!caseFormData.incidentType.trim() &&
+    !!caseFormData.incidentDate &&
+    !!caseFormData.incidentTime &&
+    !!caseFormData.incidentLocation.trim()
+  );
+}, [
+  readOnlyMode,
+  loading,
+  caseFormData.incidentType,
+  caseFormData.incidentDate,
+  caseFormData.incidentTime,
+  caseFormData.incidentLocation,
+]);
 
   const incidentDay = useMemo(
     () => getDayFromDate(caseFormData.incidentDate),
@@ -847,7 +861,6 @@ export default function EditFIPage() {
           name="subjectType"
           value={form.subjectType}
           onChange={handleChange}
-          required
           disabled={readOnlyMode}
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100"
         >

@@ -30,21 +30,38 @@ type CaseListItem = {
 export default function CasesPage() {
   const [cases, setCases] = useState<CaseListItem[]>([]);
   const [query, setQuery] = useState("");
+  const [incidentDateQuery, setIncidentDateQuery] = useState("");
   const [loadingCases, setLoadingCases] = useState(true);
   const [casesError, setCasesError] = useState<string | null>(null);
 
-  const filteredCases = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return cases;
+const filteredCases = useMemo(() => {
+  const searchTerms = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
 
-    return cases.filter((item) => {
-      return (
-        item.caseNumber.toLowerCase().includes(q) ||
-        item.incidentType.toLowerCase().includes(q)||
-        (item.incidentLocation ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [cases, query]);
+  return cases.filter((item) => {
+    const searchableText = [
+      item.caseNumber,
+      item.incidentType,
+      item.incidentLocation ?? "",
+      item.createdByName ?? "",
+      item.incidentDate ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const matchesSearch =
+      searchTerms.length === 0 ||
+      searchTerms.every((term) => searchableText.includes(term));
+
+    const matchesIncidentDate =
+      !incidentDateQuery || item.incidentDate === incidentDateQuery;
+
+    return matchesSearch && matchesIncidentDate;
+  });
+}, [cases, query, incidentDateQuery]);
 
   useEffect(() => {
     async function loadCases() {
@@ -97,32 +114,51 @@ export default function CasesPage() {
           </div>
 
           <div className="px-5 py-4">
-            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold  text-slate-700">
-                  Search Cases
-                </label>
+           <div className="flex flex-wrap items-end gap-3">
+  {/* 🔍 Search Cases */}
+  <div className="relative flex-[3] min-w-[280px]">
+    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <input
+      type="text"
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      placeholder="Search by case number, incident type, incident location, created by..."
+      autoComplete="off"
+      className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+    />
+  </div>
 
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Case number or incident type..."
-                    autoComplete="off"
-                    className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                  />
-                </div>
-              </div>
+  {/* 📅 Incident Date */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-xs font-semibold text-slate-600">
+      Incident Date
+    </label>
+    <input
+      type="date"
+      value={incidentDateQuery}
+      onChange={(e) => setIncidentDateQuery(e.target.value)}
+      className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+    />
+  </div>
 
-              <div className="text-sm text-slate-500">
-                Showing{" "}
-                <span className="font-semibold text-slate-700">
-                  {loadingCases ? "—" : filteredCases.length}
-                </span>
-              </div>
-            </div>
+  {/* ❌ Clear Filters */}
+ <button
+  type="button"
+  onClick={() => {
+    setQuery("");
+    setIncidentDateQuery("");
+  }}
+  disabled={!query && !incidentDateQuery}
+  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+    !query && !incidentDateQuery
+      ? "border-slate-200 text-slate-400 cursor-not-allowed"
+      : "border-slate-300 text-slate-600 hover:bg-slate-50"
+  }`}
+>
+  Clear
+</button>
+
+</div>
           </div>
         </section>
 

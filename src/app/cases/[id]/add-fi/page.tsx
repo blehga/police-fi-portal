@@ -425,12 +425,33 @@ export default function AddFIPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedPhotoIndex, viewerPhotos.length]);
 
-  const canSubmit = useMemo(() => {
-    return !loading && !!form.subjectType;
-  }, [loading, form.subjectType]);
+const canSubmit = useMemo(() => {
+  return (
+    !loading &&
+    !!caseFormData.incidentType.trim() &&
+    !!caseFormData.incidentDate &&
+    !!caseFormData.incidentTime &&
+    !!caseFormData.incidentLocation.trim()
+  );
+}, [
+  loading,
+  caseFormData.incidentType,
+  caseFormData.incidentDate,
+  caseFormData.incidentTime,
+  caseFormData.incidentLocation,
+]);
 
  const handleSubmit = async (e: FormEvent) => {
   e.preventDefault();
+  if (
+  !caseFormData.incidentType.trim() ||
+  !caseFormData.incidentDate ||
+  !caseFormData.incidentTime ||
+  !caseFormData.incidentLocation.trim()
+) {
+  setError("Incident Type, Incident Date, Incident Time, and Incident Location are required.");
+  return;
+}
   setLoading(true);
   setError(null);
 
@@ -466,15 +487,19 @@ export default function AddFIPage() {
     );
 
     // 3) Create FI record
-    const fiRes = await fetch(`/api/cases/${caseId}/forms/fi`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        people,
-        photos: encodedPhotos,
-      }),
-    });
+   const fiRes = await fetch(`/api/cases/${caseId}/forms/fi`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    ...form,
+    incidentType: caseFormData.incidentType,
+    incidentDate: caseFormData.incidentDate,
+    incidentTime: caseFormData.incidentTime,
+    incidentLocation: caseFormData.incidentLocation,
+    people,
+    photos: encodedPhotos,
+  }),
+});
 
     const fiRaw = await fiRes.text();
     let fiPayload: any = {};
@@ -566,6 +591,7 @@ export default function AddFIPage() {
     <input
       type="text"
       value={caseFormData.incidentType}
+      required
       onChange={(e) =>
         setCaseFormData((prev) => ({
           ...prev,
@@ -584,6 +610,7 @@ export default function AddFIPage() {
     <input
       type="date"
       value={caseFormData.incidentDate}
+      required
       onChange={(e) =>
         setCaseFormData((prev) => ({
           ...prev,
@@ -611,6 +638,7 @@ export default function AddFIPage() {
     <input
       type="time"
       value={caseFormData.incidentTime}
+      required
       onChange={(e) =>
         setCaseFormData((prev) => ({
           ...prev,
@@ -638,6 +666,7 @@ export default function AddFIPage() {
     <input
       type="text"
       value={caseFormData.incidentLocation}
+      required
       onChange={(e) =>
         setCaseFormData((prev) => ({
           ...prev,
@@ -682,7 +711,6 @@ export default function AddFIPage() {
                     name="subjectType"
                     value={form.subjectType}
                     onChange={handleChange}
-                    required
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   >
                     <option value="">Select subject type</option>

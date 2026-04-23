@@ -10,6 +10,7 @@ import {
   Printer,
   Images,
   Users,
+  Search,
 } from "lucide-react";
 import CaseFormShareBadge from "@/components/CaseFormShareBadge";
 
@@ -189,14 +190,27 @@ export default function CasePeopleForms({
   formCount: number;
 }) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [createdByQuery, setCreatedByQuery] = useState("");
 
   const filteredForms = useMemo(() => {
-    if (!selectedPersonId) return forms;
-    return forms.filter((form) =>
+  let result = forms;
+
+  if (selectedPersonId) {
+    result = result.filter((form) =>
       form.people.some((person) => person.id === selectedPersonId)
     );
-  }, [forms, selectedPersonId]);
+  }
 
+  const q = createdByQuery.trim().toLowerCase();
+
+  if (q) {
+    result = result.filter((form) =>
+      (form.createdByName || "").toLowerCase().includes(q)
+    );
+  }
+
+  return result;
+}, [forms, selectedPersonId, createdByQuery]);
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
       <section className="rounded-2xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur">
@@ -266,6 +280,36 @@ export default function CasePeopleForms({
             {selectedPersonId ? filteredForms.length : formCount}
           </span>
         </div>
+
+       <div className="border-b border-slate-200 px-4 py-3">
+  <div className="flex items-center gap-2">
+    <div className="relative flex-1 max-w-md">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="text"
+        value={createdByQuery}
+        onChange={(e) => setCreatedByQuery(e.target.value)}
+        placeholder="Search by created by..."
+        autoComplete="off"
+        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+      />
+    </div>
+
+    {/* ❌ Clear */}
+    <button
+      type="button"
+      onClick={() => setCreatedByQuery("")}
+      disabled={!createdByQuery}
+      className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+        !createdByQuery
+          ? "border-slate-200 text-slate-400 cursor-not-allowed"
+          : "border-slate-300 text-slate-600 hover:bg-slate-50"
+      }`}
+    >
+      Clear
+    </button>
+  </div>
+</div>
 
         <div className="divide-y divide-slate-200">
           {filteredForms.length === 0 ? (
