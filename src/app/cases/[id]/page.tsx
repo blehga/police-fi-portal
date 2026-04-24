@@ -313,7 +313,7 @@ export default async function CaseDetailPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-2 xl:grid-cols-[250px_240px_220px_minmax(420px,1fr)_130px_130px]">
             <StatCard
               icon={<Shield className="h-4 w-4" />}
               label="Incident Type"
@@ -329,21 +329,50 @@ export default async function CaseDetailPage({
               label="Incident Time"
               value={data.incidentTime || "—"}
             />
-            <StatCard
-              icon={<span className="text-blue-700">📍</span>}
-              label="Incident Location"
-              value={data.incidentLocation || "—"}
-            />
-            <StatCard
-              icon={<Users className="h-4 w-4" />}
-              label="People"
-              value={`${data.persons.length}`}
-            />
-            <StatCard
-              icon={<FileText className="h-4 w-4" />}
-              label="Forms"
-              value={`${data.formCount}`}
-            />
+           <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-3 shadow-sm">
+  <div className="flex items-center gap-3 min-w-0">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+      📍
+    </div>
+
+    <div className="min-w-0">
+      <div className="text-xs font-medium text-slate-500">
+        Incident Location
+      </div>
+      <div className="truncate text-base font-semibold text-slate-900">
+        {data.incidentLocation || "—"}
+      </div>
+    </div>
+  </div>
+</div>
+          <div className="rounded-xl border border-slate-200 bg-white/90 px-2 py-2 shadow-sm">
+  <div className="flex items-center gap-2">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+      <Users className="h-4 w-4" />
+    </div>
+
+    <div>
+      <div className="text-xs text-slate-500">People</div>
+      <div className="text-sm font-semibold text-slate-900">
+        {data.persons.length}
+      </div>
+    </div>
+  </div>
+</div>
+            <div className="rounded-xl border border-slate-200 bg-white/90 px-2 py-2 shadow-sm">
+  <div className="flex items-center gap-2">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+      <FileText className="h-4 w-4" />
+    </div>
+
+    <div>
+      <div className="text-xs text-slate-500">Forms</div>
+      <div className="text-sm font-semibold text-slate-900">
+        {data.formCount}
+      </div>
+    </div>
+  </div>
+</div>
           </div>
         </section>
 
