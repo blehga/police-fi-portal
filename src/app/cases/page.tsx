@@ -33,6 +33,25 @@ export default function CasesPage() {
   const [incidentDateQuery, setIncidentDateQuery] = useState("");
   const [loadingCases, setLoadingCases] = useState(true);
   const [casesError, setCasesError] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+useEffect(() => {
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (target.closest("[data-case-menu]")) {
+      return;
+    }
+
+    setOpenMenuId(null);
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
 const filteredCases = useMemo(() => {
   const searchTerms = query
@@ -93,7 +112,7 @@ const filteredCases = useMemo(() => {
   return (
     <main className="min-h-[calc(100vh-56px)] bg-gradient-to-br from-blue-50 via-white to-slate-100 px-4 py-6">
       <div className="mx-auto w-full max-w-7xl space-y-4">
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
+        <section className="overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -162,7 +181,7 @@ const filteredCases = useMemo(() => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
+        <section className="overflow-visible rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
             <h2 className="text-sm font-semibold text-slate-800">
               Case Records
@@ -179,7 +198,7 @@ const filteredCases = useMemo(() => {
           ) : filteredCases.length === 0 ? (
             <div className="px-5 py-8 text-sm text-slate-500">No cases found.</div>
           ) : (
-            <div className="divide-y divide-slate-200">
+            <div className="overflow-visible divide-y divide-slate-200">
               {filteredCases.map((item) => (
                 <div
                   key={item.id}
@@ -254,13 +273,20 @@ const filteredCases = useMemo(() => {
                         View Case
                       </Link>
 
-                      <details className="relative">
-                        <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition hover:bg-slate-50">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </summary>
+                     <div className="relative z-50" data-case-menu>
+                      <button
+  type="button"
+  onClick={() => {
+  setOpenMenuId(openMenuId === item.id ? null : item.id);
+}}
+  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition hover:bg-slate-50"
+>
+  <MoreHorizontal className="h-4 w-4" />
+</button>
 
-                        <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-                          <div className="flex flex-col text-sm">
+                        {openMenuId === item.id && (
+<div className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+    <div className="flex flex-col text-sm">
                             <Link
                               href={`/cases/${item.id}/add-fi`}
                               className="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"
@@ -275,22 +301,19 @@ const filteredCases = useMemo(() => {
                               Add Narrative
                             </Link>
 
-                            <button
-                              type="button"
-                              className="rounded-lg px-3 py-2 text-left text-slate-700 hover:bg-slate-50"
-                            >
-                              Print Reports
-                            </button>
+                           <Link
+  href={`/api/cases/${item.id}/reports/public/pdf`}
+  target="_blank"
+  className="rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"
+>
+  Print Reports
+</Link>
 
-                            <button
-                              type="button"
-                              className="rounded-lg px-3 py-2 text-left text-red-600 hover:bg-red-50"
-                            >
-                              Delete Case
-                            </button>
+                          
                           </div>
                         </div>
-                      </details>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
