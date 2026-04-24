@@ -689,7 +689,34 @@ async function drawImageBox(
       color: COLORS.muted,
     });
   }
+function drawPhotoCaption(
+  page: PDFPage,
+  fonts: Fonts,
+  x: number,
+  y: number,
+  w: number,
+  caption?: string | null
+) {
+  const text = String(caption ?? "").trim();
+  if (!text) return;
 
+  const lines = measureLines(text, w, fonts.bold, 7.2, 2);
+
+  let yy = y;
+  for (const line of lines) {
+    const textWidth = fonts.bold.widthOfTextAtSize(line, 7.2);
+
+    page.drawText(line, {
+      x: x + (w - textWidth) / 2,
+      y: yy,
+      size: 7.2,
+      font: fonts.bold,
+      color: COLORS.text,
+    });
+
+    yy -= 8;
+  }
+}
   
   if (!imageUrl) {
     const msg = "No Photo";
@@ -702,6 +729,7 @@ async function drawImageBox(
     });
     return;
   }
+
 
   const bytes = await readLocalUpload(imageUrl);
   if (!bytes) {
@@ -743,6 +771,35 @@ async function drawImageBox(
     });
   }
 }
+function drawPhotoCaption(
+  page: PDFPage,
+  fonts: Fonts,
+  x: number,
+  y: number,
+  w: number,
+  caption?: string | null
+) {
+  const text = String(caption ?? "").trim();
+  if (!text) return;
+
+  const lines = measureLines(text, w, fonts.bold, 7.2, 2);
+
+  let yy = y;
+  for (const line of lines) {
+    const textWidth = fonts.bold.widthOfTextAtSize(line, 7.2);
+
+    page.drawText(line, {
+      x: x + (w - textWidth) / 2,
+      y: yy,
+      size: 7.2,
+      font: fonts.bold,
+      color: COLORS.text,
+    });
+
+    yy -= 8;
+  }
+}
+
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
@@ -969,8 +1026,16 @@ export async function GET(_request: Request, context: RouteContext) {
         photoW,
         photoH,
         photos[0]?.url ?? null,
-        "Primary Photo"
       );
+drawPhotoCaption(
+  cursor.page,
+  fonts,
+  innerX,
+  photoY - photoH - 10,
+  photoW,
+  (photos[0] as any)?.caption
+);
+
       await drawImageBox(
         pdfDoc,
         cursor.page,
@@ -980,8 +1045,18 @@ export async function GET(_request: Request, context: RouteContext) {
         photoW,
         photoH,
         photos[1]?.url ?? null,
-        "Secondary Photo"
       );
+
+      drawPhotoCaption(
+  cursor.page,
+  fonts,
+  innerX + photoW + photoGap,
+  photoY - photoH - 10,
+  photoW,
+  (photos[1] as any)?.caption
+);
+
+
       await drawImageBox(
         pdfDoc,
         cursor.page,
@@ -991,8 +1066,16 @@ export async function GET(_request: Request, context: RouteContext) {
         photoW,
         photoH,
         photos[2]?.url ?? null,
-        "Evidence / Scene"
       );
+
+   drawPhotoCaption(
+  cursor.page,
+  fonts,
+  innerX + (photoW + photoGap) * 2,
+  photoY - photoH - 10,
+  photoW,
+  (photos[2] as any)?.caption
+);
 
       cursor.y -= 126;
     }
