@@ -63,14 +63,18 @@ function getFormSummary(form: CaseForm) {
   if (form.formType === "NARRATIVE") {
     const raw = form.narrative?.narrativeText || "";
 
-    const cleanText = raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const cleanText = raw
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
     return cleanText.length > 140
       ? `${cleanText.slice(0, 140)}...`
       : cleanText || "No Summary";
   }
 
-  return "No Summary";
+  // ✅ For FI and other forms → return empty instead of "No Summary"
+  return "";
 }
 
 function getPeopleSummary(
