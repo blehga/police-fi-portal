@@ -200,23 +200,25 @@ const filteredCases = useMemo(() => {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-1 text-xs text-slate-500 md:grid-cols-2 xl:grid-cols-5">
+                      <div className="grid grid-cols-1 gap-1 text-xs text-slate-500 md:grid-cols-2 xl:grid-cols-[120px_90px_minmax(360px,1fr)_80px_90px]">
                         <div className="inline-flex items-center gap-1.5">
                           <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                          <span>{item.incidentDate ?? "—"}</span>
+                          <span className="font-semibold text-slate-700">{item.incidentDate ?? "—"}</span>
                         </div>
 
                         <div className="inline-flex items-center gap-1.5">
                           <Clock3 className="h-3.5 w-3.5 text-slate-400" />
-                          <span>{item.incidentTime ?? "—"}</span>
+                          <span className="font-semibold text-slate-700">{item.incidentTime ?? "—"}</span>
                         </div>
 
-<div className="inline-flex items-center gap-1.5">
-  <span className="text-slate-400">📍</span>
-  <span>{item.incidentLocation ?? "—"}</span>
+<div className="inline-flex min-w-0 items-center gap-1.5">
+  <span className="shrink-0 text-slate-400">📍</span>
+  <span className="truncate font-semibold text-slate-700">
+    {item.incidentLocation ?? "—"}
+  </span>
 </div>
 
-                        <div className="inline-flex items-center gap-1.5">
+                        <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
                           <FileText className="h-3.5 w-3.5 text-slate-400" />
                           <span>
                             {item.formCount} form{item.formCount === 1 ? "" : "s"}
@@ -226,13 +228,13 @@ const filteredCases = useMemo(() => {
                           </span>
                         </div>
 
-                        <div className="inline-flex items-center gap-1.5">
+                        <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
                           <Users className="h-3.5 w-3.5 text-slate-400" />
                           <span>{item.personCount} people</span>
                         </div>
                       </div>
                       
-<div className="mt-1 text-[11px] text-slate-400">
+<div className="mt-1 text-[12px] text-slate-400">
   <span className="text-slate-500">Created By:</span>{" "}
   <span className="font-medium text-slate-700">
     {item.createdByName ?? "Unknown"}
