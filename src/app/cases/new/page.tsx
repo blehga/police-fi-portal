@@ -52,10 +52,6 @@ export default function NewCasePage() {
           <div className="inline-flex items-center rounded-full border border-blue-300 bg-blue-50 px-4 py-2 text-base font-semibold tracking-tight text-blue-800 shadow-sm">
             Start A New Case
           </div>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Select how you want to begin this case.
-          </p>
         </div>
 
         {/* Card */}
