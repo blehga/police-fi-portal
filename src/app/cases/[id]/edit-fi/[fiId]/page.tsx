@@ -48,12 +48,14 @@ type FIFormState = {
 type ExistingPhoto = {
   id: string;
   url: string;
+  caption: string | null;
 };
 
 type NewPhoto = {
   file: File;
   preview: string;
   name: string;
+  caption: string;
 };
 
 type EditFIResponse = {
@@ -321,7 +323,12 @@ export default function EditFIPage() {
             : []
         );
 
-        setExistingPhotos(fiJson.photos ?? []);
+        setExistingPhotos(
+          (fiJson.photos ?? []).map((photo) => ({
+            ...photo,
+            caption: photo.caption ?? "",
+          }))
+        );
         setCanEditRecord(Boolean(fiJson.canEdit ?? true));
         setIsShared(Boolean(fiJson.isShared ?? false));
       } catch (err: any) {
@@ -436,6 +443,7 @@ export default function EditFIPage() {
         file,
         preview,
         name: file.name,
+        caption: "",
       },
     ]);
 
@@ -609,8 +617,16 @@ const canSubmit = useMemo(() => {
         throw new Error(caseJson?.error || "Failed to update case");
       }
 
+      const updatedExistingPhotos = existingPhotos.map((photo) => ({
+        id: photo.id,
+        caption: photo.caption ?? "",
+      }));
+
       const encodedNewPhotos = await Promise.all(
-        newPhotos.map((photo) => readFileAsDataUrl(photo.file))
+        newPhotos.map(async (photo) => ({
+          dataUrl: await readFileAsDataUrl(photo.file),
+          caption: photo.caption,
+        }))
       );
 
       const fiRes = await fetch(`/api/cases/${caseId}/forms/fi/${fiId}`, {
@@ -620,6 +636,7 @@ const canSubmit = useMemo(() => {
           ...form,
           people,
           deletedPhotoIds,
+          existingPhotos: updatedExistingPhotos,
           newPhotos: encodedNewPhotos,
         }),
       });
@@ -1111,6 +1128,50 @@ const canSubmit = useMemo(() => {
                             className="object-cover"
                           />
                         </button>
+
+                        {photo.type === "existing" ? (
+                          readOnlyMode ? (
+                            existingPhotos.find((p) => p.id === photo.id)?.caption ? (
+                              <p className="mt-2 text-xs font-semibold text-slate-900">
+  {existingPhotos.find((p) => p.id === photo.id)?.caption}
+</p>
+                            ) : null
+                          ) : (
+                            <input
+                              type="text"
+                              value={
+                                existingPhotos.find((p) => p.id === photo.id)?.caption ?? ""
+                              }
+                              onChange={(e) =>
+                                setExistingPhotos((prev) =>
+                                  prev.map((p) =>
+                                    p.id === photo.id
+                                      ? { ...p, caption: e.target.value }
+                                      : p
+                                  )
+                                )
+                              }
+                              placeholder="Photo caption"
+                              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                            />
+                          )
+                        ) : readOnlyMode ? null : (
+                          <input
+                            type="text"
+                            value={newPhotos[photo.index]?.caption ?? ""}
+                            onChange={(e) =>
+                              setNewPhotos((prev) =>
+                                prev.map((p, i) =>
+                                  i === photo.index
+                                    ? { ...p, caption: e.target.value }
+                                    : p
+                                )
+                              )
+                            }
+                            placeholder="Photo caption"
+                            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                          />
+                        )}
 
                         {!readOnlyMode && (
                           <div className="mt-2 flex justify-end">

@@ -343,6 +343,7 @@ export const FIPhotoScalarFieldEnum = {
   id: 'id',
   fiCardId: 'fiCardId',
   url: 'url',
+  caption: 'caption',
   createdAt: 'createdAt'
 } as const
 
@@ -596,7 +597,8 @@ export type NarrativeOrderByRelevanceFieldEnum = (typeof NarrativeOrderByRelevan
 export const FIPhotoOrderByRelevanceFieldEnum = {
   id: 'id',
   fiCardId: 'fiCardId',
-  url: 'url'
+  url: 'url',
+  caption: 'caption'
 } as const
 
 export type FIPhotoOrderByRelevanceFieldEnum = (typeof FIPhotoOrderByRelevanceFieldEnum)[keyof typeof FIPhotoOrderByRelevanceFieldEnum]

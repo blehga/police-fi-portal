@@ -256,6 +256,7 @@ export async function GET(request: Request, context: RouteContext) {
       photos: form.fiCard.photos.map((photo) => ({
         id: photo.id,
         url: photo.url,
+        caption: photo.caption?.trim() || null
       })),
     });
   } catch (error) {
@@ -296,6 +297,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       fiTime,
       people = [],
       deletedPhotoIds = [],
+      existingPhotos = [],
       newPhotos = [],
     } = body ?? {};
 
@@ -364,16 +366,68 @@ export async function PATCH(request: Request, context: RouteContext) {
         )
       : [];
 
-    const newPhotoDataUrls = Array.isArray(newPhotos)
-      ? newPhotos.filter(
-          (value: unknown): value is string =>
-            typeof value === "string" && value.startsWith("data:image/")
-        )
+    const existingPhotoUpdates = Array.isArray(existingPhotos)
+      ? existingPhotos
+          .map((value: unknown) => {
+            if (
+              value &&
+              typeof value === "object" &&
+              typeof (value as any).id === "string"
+            ) {
+              const caption =
+                typeof (value as any).caption === "string"
+                  ? (value as any).caption.trim() || null
+                  : null;
+
+              return {
+                id: (value as any).id,
+                caption,
+              };
+            }
+
+            return null;
+          })
+          .filter(
+            (value): value is { id: string; caption: string | null } =>
+              value !== null
+          )
+      : [];
+
+    const newPhotoPayloads = Array.isArray(newPhotos)
+      ? newPhotos
+          .map((value: unknown) => {
+            if (typeof value === "string" && value.startsWith("data:image/")) {
+              return { dataUrl: value, caption: null as string | null };
+            }
+
+            if (
+              value &&
+              typeof value === "object" &&
+              typeof (value as any).dataUrl === "string" &&
+              (value as any).dataUrl.startsWith("data:image/")
+            ) {
+              const caption =
+                typeof (value as any).caption === "string"
+                  ? (value as any).caption.trim() || null
+                  : null;
+
+              return {
+                dataUrl: (value as any).dataUrl,
+                caption,
+              };
+            }
+
+            return null;
+          })
+          .filter(
+            (value): value is { dataUrl: string; caption: string | null } =>
+              value !== null
+          )
       : [];
 
     const currentPhotoCount = existingForm.fiCard.photos.length;
     const remainingPhotoCount =
-      currentPhotoCount - photoIdsToDelete.length + newPhotoDataUrls.length;
+      currentPhotoCount - photoIdsToDelete.length + newPhotoPayloads.length;
 
     if (remainingPhotoCount > 3) {
       return NextResponse.json(
@@ -382,11 +436,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    const savedNewPhotos: { filePath: string; publicUrl: string }[] = [];
-    for (const photo of newPhotoDataUrls) {
-      const saved = await saveDataUrlImage(photo, fiCardId);
+    const savedNewPhotos: { filePath: string; publicUrl: string; caption: string | null }[] = [];
+    for (const photo of newPhotoPayloads) {
+      const saved = await saveDataUrlImage(photo.dataUrl, fiCardId);
       createdFiles.push(saved.filePath);
-      savedNewPhotos.push(saved);
+      savedNewPhotos.push({ ...saved, caption: photo.caption });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -409,6 +463,20 @@ export async function PATCH(request: Request, context: RouteContext) {
           fiTime: fiTime ?? null,
         },
       });
+
+      for (const photo of existingPhotoUpdates) {
+        if (photoIdsToDelete.includes(photo.id)) continue;
+
+        await tx.fIPhoto.updateMany({
+          where: {
+            id: photo.id,
+            fiCardId,
+          },
+          data: {
+            caption: photo.caption,
+          },
+        });
+      }
 
       if (photoIdsToDelete.length > 0) {
         const photosToDelete = await tx.fIPhoto.findMany({
@@ -444,6 +512,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           data: savedNewPhotos.map((photo) => ({
             fiCardId,
             url: photo.publicUrl,
+            caption: photo.caption,
           })),
         });
       }
@@ -639,6 +708,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       photos: updated.fiCard.photos.map((photo) => ({
         id: photo.id,
         url: photo.url,
+        caption: photo.caption?.trim() || null
       })),
     });
   } catch (error) {

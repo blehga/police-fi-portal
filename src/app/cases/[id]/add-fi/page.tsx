@@ -49,6 +49,7 @@ type NewPhoto = {
   file: File;
   preview: string;
   name: string;
+  caption: string;
 };
 
 const MAX_PHOTOS = 3;
@@ -360,6 +361,7 @@ export default function AddFIPage() {
         file,
         preview,
         name: file.name,
+        caption: "",
       },
     ]);
 
@@ -483,7 +485,10 @@ const canSubmit = useMemo(() => {
 
     // 2) Encode FI photos
     const encodedPhotos = await Promise.all(
-      newPhotos.map((photo) => readFileAsDataUrl(photo.file))
+      newPhotos.map(async (photo) => ({
+        dataUrl: await readFileAsDataUrl(photo.file),
+        caption: photo.caption,
+      }))
     );
 
     // 3) Create FI record
@@ -832,6 +837,26 @@ const canSubmit = useMemo(() => {
                         <div className="truncate text-xs text-slate-500">
                           {photo.name}
                         </div>
+
+                        {photo.caption && (
+  <div className="text-sm font-semibold text-slate-900 mt-1">
+    {photo.caption}
+  </div>
+)}
+
+                        <input
+                          type="text"
+                          value={photo.caption}
+                          onChange={(e) =>
+                            setNewPhotos((prev) =>
+                              prev.map((p, i) =>
+                                i === index ? { ...p, caption: e.target.value } : p
+                              )
+                            )
+                          }
+                          placeholder="Photo caption"
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        />
 
                         <div className="flex gap-2">
                           <button

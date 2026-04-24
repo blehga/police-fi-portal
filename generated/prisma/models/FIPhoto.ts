@@ -28,6 +28,7 @@ export type FIPhotoMinAggregateOutputType = {
   id: string | null
   fiCardId: string | null
   url: string | null
+  caption: string | null
   createdAt: Date | null
 }
 
@@ -35,6 +36,7 @@ export type FIPhotoMaxAggregateOutputType = {
   id: string | null
   fiCardId: string | null
   url: string | null
+  caption: string | null
   createdAt: Date | null
 }
 
@@ -42,6 +44,7 @@ export type FIPhotoCountAggregateOutputType = {
   id: number
   fiCardId: number
   url: number
+  caption: number
   createdAt: number
   _all: number
 }
@@ -51,6 +54,7 @@ export type FIPhotoMinAggregateInputType = {
   id?: true
   fiCardId?: true
   url?: true
+  caption?: true
   createdAt?: true
 }
 
@@ -58,6 +62,7 @@ export type FIPhotoMaxAggregateInputType = {
   id?: true
   fiCardId?: true
   url?: true
+  caption?: true
   createdAt?: true
 }
 
@@ -65,6 +70,7 @@ export type FIPhotoCountAggregateInputType = {
   id?: true
   fiCardId?: true
   url?: true
+  caption?: true
   createdAt?: true
   _all?: true
 }
@@ -145,6 +151,7 @@ export type FIPhotoGroupByOutputType = {
   id: string
   fiCardId: string
   url: string
+  caption: string | null
   createdAt: Date
   _count: FIPhotoCountAggregateOutputType | null
   _min: FIPhotoMinAggregateOutputType | null
@@ -173,6 +180,7 @@ export type FIPhotoWhereInput = {
   id?: Prisma.StringFilter<"FIPhoto"> | string
   fiCardId?: Prisma.StringFilter<"FIPhoto"> | string
   url?: Prisma.StringFilter<"FIPhoto"> | string
+  caption?: Prisma.StringNullableFilter<"FIPhoto"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FIPhoto"> | Date | string
   fiCard?: Prisma.XOR<Prisma.FICardScalarRelationFilter, Prisma.FICardWhereInput>
 }
@@ -181,6 +189,7 @@ export type FIPhotoOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   fiCardId?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  caption?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   fiCard?: Prisma.FICardOrderByWithRelationInput
   _relevance?: Prisma.FIPhotoOrderByRelevanceInput
@@ -193,6 +202,7 @@ export type FIPhotoWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.FIPhotoWhereInput | Prisma.FIPhotoWhereInput[]
   fiCardId?: Prisma.StringFilter<"FIPhoto"> | string
   url?: Prisma.StringFilter<"FIPhoto"> | string
+  caption?: Prisma.StringNullableFilter<"FIPhoto"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FIPhoto"> | Date | string
   fiCard?: Prisma.XOR<Prisma.FICardScalarRelationFilter, Prisma.FICardWhereInput>
 }, "id">
@@ -201,6 +211,7 @@ export type FIPhotoOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   fiCardId?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  caption?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.FIPhotoCountOrderByAggregateInput
   _max?: Prisma.FIPhotoMaxOrderByAggregateInput
@@ -214,12 +225,14 @@ export type FIPhotoScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"FIPhoto"> | string
   fiCardId?: Prisma.StringWithAggregatesFilter<"FIPhoto"> | string
   url?: Prisma.StringWithAggregatesFilter<"FIPhoto"> | string
+  caption?: Prisma.StringNullableWithAggregatesFilter<"FIPhoto"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FIPhoto"> | Date | string
 }
 
 export type FIPhotoCreateInput = {
   id?: string
   url: string
+  caption?: string | null
   createdAt?: Date | string
   fiCard: Prisma.FICardCreateNestedOneWithoutPhotosInput
 }
@@ -228,12 +241,14 @@ export type FIPhotoUncheckedCreateInput = {
   id?: string
   fiCardId: string
   url: string
+  caption?: string | null
   createdAt?: Date | string
 }
 
 export type FIPhotoUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fiCard?: Prisma.FICardUpdateOneRequiredWithoutPhotosNestedInput
 }
@@ -242,6 +257,7 @@ export type FIPhotoUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fiCardId?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -249,12 +265,14 @@ export type FIPhotoCreateManyInput = {
   id?: string
   fiCardId: string
   url: string
+  caption?: string | null
   createdAt?: Date | string
 }
 
 export type FIPhotoUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -262,6 +280,7 @@ export type FIPhotoUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   fiCardId?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -285,6 +304,7 @@ export type FIPhotoCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   fiCardId?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  caption?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -292,6 +312,7 @@ export type FIPhotoMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   fiCardId?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  caption?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -299,6 +320,7 @@ export type FIPhotoMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   fiCardId?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  caption?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -347,12 +369,14 @@ export type FIPhotoUncheckedUpdateManyWithoutFiCardNestedInput = {
 export type FIPhotoCreateWithoutFiCardInput = {
   id?: string
   url: string
+  caption?: string | null
   createdAt?: Date | string
 }
 
 export type FIPhotoUncheckedCreateWithoutFiCardInput = {
   id?: string
   url: string
+  caption?: string | null
   createdAt?: Date | string
 }
 
@@ -389,30 +413,35 @@ export type FIPhotoScalarWhereInput = {
   id?: Prisma.StringFilter<"FIPhoto"> | string
   fiCardId?: Prisma.StringFilter<"FIPhoto"> | string
   url?: Prisma.StringFilter<"FIPhoto"> | string
+  caption?: Prisma.StringNullableFilter<"FIPhoto"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FIPhoto"> | Date | string
 }
 
 export type FIPhotoCreateManyFiCardInput = {
   id?: string
   url: string
+  caption?: string | null
   createdAt?: Date | string
 }
 
 export type FIPhotoUpdateWithoutFiCardInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FIPhotoUncheckedUpdateWithoutFiCardInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FIPhotoUncheckedUpdateManyWithoutFiCardInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -422,6 +451,7 @@ export type FIPhotoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   id?: boolean
   fiCardId?: boolean
   url?: boolean
+  caption?: boolean
   createdAt?: boolean
   fiCard?: boolean | Prisma.FICardDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["fIPhoto"]>
@@ -432,10 +462,11 @@ export type FIPhotoSelectScalar = {
   id?: boolean
   fiCardId?: boolean
   url?: boolean
+  caption?: boolean
   createdAt?: boolean
 }
 
-export type FIPhotoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fiCardId" | "url" | "createdAt", ExtArgs["result"]["fIPhoto"]>
+export type FIPhotoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fiCardId" | "url" | "caption" | "createdAt", ExtArgs["result"]["fIPhoto"]>
 export type FIPhotoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   fiCard?: boolean | Prisma.FICardDefaultArgs<ExtArgs>
 }
@@ -449,6 +480,7 @@ export type $FIPhotoPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     id: string
     fiCardId: string
     url: string
+    caption: string | null
     createdAt: Date
   }, ExtArgs["result"]["fIPhoto"]>
   composites: {}
@@ -823,6 +855,7 @@ export interface FIPhotoFieldRefs {
   readonly id: Prisma.FieldRef<"FIPhoto", 'String'>
   readonly fiCardId: Prisma.FieldRef<"FIPhoto", 'String'>
   readonly url: Prisma.FieldRef<"FIPhoto", 'String'>
+  readonly caption: Prisma.FieldRef<"FIPhoto", 'String'>
   readonly createdAt: Prisma.FieldRef<"FIPhoto", 'DateTime'>
 }
     

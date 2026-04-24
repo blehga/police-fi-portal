@@ -134,14 +134,39 @@ if (
         ? authUser.badgeId.trim()
         : null;
 
-    const photoDataUrls = Array.isArray(photos)
-      ? photos.filter(
-          (value: unknown): value is string =>
-            typeof value === "string" && value.startsWith("data:image/")
-        )
+    const photoPayloads = Array.isArray(photos)
+      ? photos
+          .map((value: unknown) => {
+            if (typeof value === "string" && value.startsWith("data:image/")) {
+              return { dataUrl: value, caption: null as string | null };
+            }
+
+            if (
+              value &&
+              typeof value === "object" &&
+              typeof (value as any).dataUrl === "string" &&
+              (value as any).dataUrl.startsWith("data:image/")
+            ) {
+              const caption =
+                typeof (value as any).caption === "string"
+                  ? (value as any).caption.trim() || null
+                  : null;
+
+              return {
+                dataUrl: (value as any).dataUrl,
+                caption,
+              };
+            }
+
+            return null;
+          })
+          .filter(
+            (value): value is { dataUrl: string; caption: string | null } =>
+              value !== null
+          )
       : [];
 
-    if (photoDataUrls.length > 3) {
+    if (photoPayloads.length > 3) {
       return NextResponse.json(
         { error: "A maximum of 3 FI photos is allowed." },
         { status: 400 }
@@ -289,20 +314,21 @@ if (
       }
     }
 
-    if (photoDataUrls.length > 0) {
-      const savedPhotos: Array<{ filePath: string; publicUrl: string }> = [];
+    if (photoPayloads.length > 0) {
+      const savedPhotos: Array<{ filePath: string; publicUrl: string; caption: string | null }> = [];
 
       try {
-        for (const photo of photoDataUrls) {
-          const saved = await saveDataUrlImage(photo, created.fiCard.id);
+        for (const photo of photoPayloads) {
+          const saved = await saveDataUrlImage(photo.dataUrl, created.fiCard.id);
           createdFiles.push(saved.filePath);
-          savedPhotos.push(saved);
+          savedPhotos.push({ ...saved, caption: photo.caption });
         }
 
         await prisma.fIPhoto.createMany({
           data: savedPhotos.map((photo) => ({
             fiCardId: created.fiCard!.id,
             url: photo.publicUrl,
+            caption: photo.caption,
           })),
         });
       } catch (photoError) {
