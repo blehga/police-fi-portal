@@ -218,9 +218,25 @@ export default function EditNarrativePage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const canSubmit = useMemo(() => {
-    return !readOnlyMode && !loading && !!form.content.trim();
-  }, [readOnlyMode, loading, form.content]);
+ const canSubmit = useMemo(() => {
+  return (
+    !readOnlyMode &&
+    !loading &&
+    !!form.content.trim() &&
+    !!caseFormData.incidentType.trim() &&
+    !!caseFormData.incidentDate &&
+    !!caseFormData.incidentTime &&
+    !!caseFormData.incidentLocation.trim()
+  );
+}, [
+  readOnlyMode,
+  loading,
+  form.content,
+  caseFormData.incidentType,
+  caseFormData.incidentDate,
+  caseFormData.incidentTime,
+  caseFormData.incidentLocation,
+]);
 
   const handleToggleShare = async () => {
     if (!canEditRecord || shareSaving) return;
@@ -261,6 +277,18 @@ export default function EditNarrativePage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    if (
+  !caseFormData.incidentType.trim() ||
+  !caseFormData.incidentDate ||
+  !caseFormData.incidentTime ||
+  !caseFormData.incidentLocation.trim()
+) {
+  setError(
+    "Incident Type, Incident Date, Incident Time, and Incident Location are required."
+  );
+  return;
+}
+
     if (readOnlyMode) return;
 
     setLoading(true);
@@ -296,14 +324,18 @@ export default function EditNarrativePage() {
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: form.content,
-            beat: form.beat,
-            narrativeDate: form.narrativeDate || null,
-            narrativeDay:
-              form.narrativeDay || getDayFromDate(form.narrativeDate || ""),
-            narrativeTime: form.narrativeTime || null,
-          }),
+         body: JSON.stringify({
+  content: form.content,
+  beat: form.beat,
+  narrativeDate: form.narrativeDate,
+  narrativeDay: form.narrativeDay,
+  narrativeTime: form.narrativeTime,
+
+  incidentType: caseFormData.incidentType,
+  incidentDate: caseFormData.incidentDate,
+  incidentTime: caseFormData.incidentTime,
+  incidentLocation: caseFormData.incidentLocation,
+})
         }
       );
 
@@ -421,6 +453,7 @@ export default function EditNarrativePage() {
         <input
           type="text"
           value={caseFormData.incidentType}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,
@@ -444,6 +477,7 @@ export default function EditNarrativePage() {
         <input
           type="date"
           value={caseFormData.incidentDate}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,
@@ -486,6 +520,7 @@ export default function EditNarrativePage() {
         <input
           type="time"
           value={caseFormData.incidentTime}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,
@@ -519,6 +554,7 @@ export default function EditNarrativePage() {
         <input
           type="text"
           value={caseFormData.incidentLocation}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,

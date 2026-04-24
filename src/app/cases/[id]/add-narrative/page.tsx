@@ -184,10 +184,27 @@ export default function AddNarrativePage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const canSubmit = !saving && form.content.trim().length > 0;
+  const canSubmit =
+  !saving &&
+  form.content.trim().length > 0 &&
+  !!caseFormData.incidentType.trim() &&
+  !!caseFormData.incidentDate &&
+  !!caseFormData.incidentTime &&
+  !!caseFormData.incidentLocation.trim();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (
+  !caseFormData.incidentType.trim() ||
+  !caseFormData.incidentDate ||
+  !caseFormData.incidentTime ||
+  !caseFormData.incidentLocation.trim()
+) {
+  setError(
+    "Incident Type, Incident Date, Incident Time, and Incident Location are required."
+  );
+  return;
+}
     setSaving(true);
     setError(null);
 
@@ -219,14 +236,19 @@ export default function AddNarrativePage() {
       const res = await fetch(`/api/cases/${caseId}/forms/narrative`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: form.content,
-          beat: form.beat,
-          narrativeDate: form.narrativeDate || null,
-          narrativeDay:
-            form.narrativeDay || getDayFromDate(form.narrativeDate || ""),
-          narrativeTime: form.narrativeTime || null,
-        }),
+       body: JSON.stringify({
+  content: form.content,
+  beat: form.beat,
+  narrativeDate: form.narrativeDate || null,
+  narrativeDay:
+    form.narrativeDay || getDayFromDate(form.narrativeDate || ""),
+  narrativeTime: form.narrativeTime || null,
+
+  incidentType: caseFormData.incidentType,
+  incidentDate: caseFormData.incidentDate,
+  incidentTime: caseFormData.incidentTime,
+  incidentLocation: caseFormData.incidentLocation,
+}),
       });
 
       const raw = await res.text();
@@ -313,6 +335,7 @@ export default function AddNarrativePage() {
         <input
           type="text"
           value={caseFormData.incidentType}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,
@@ -331,6 +354,7 @@ export default function AddNarrativePage() {
         <input
           type="date"
           value={caseFormData.incidentDate}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,
@@ -358,6 +382,7 @@ export default function AddNarrativePage() {
         <input
           type="time"
           value={caseFormData.incidentTime}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,
@@ -385,6 +410,7 @@ export default function AddNarrativePage() {
         <input
           type="text"
           value={caseFormData.incidentLocation}
+          required
           onChange={(e) =>
             setCaseFormData((prev) => ({
               ...prev,

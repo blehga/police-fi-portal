@@ -115,7 +115,33 @@ export async function PATCH(request: Request, context: RouteContext) {
       narrativeDate,
       narrativeDay,
       narrativeTime,
+      incidentType,
+  incidentDate,
+  incidentTime,
+  incidentLocation,
     } = body ?? {};
+
+    if (!String(content ?? "").trim()) {
+  return NextResponse.json(
+    { error: "Narrative content is required." },
+    { status: 400 }
+  );
+}
+
+    if (
+  !String(incidentType ?? "").trim() ||
+  !String(incidentDate ?? "").trim() ||
+  !String(incidentTime ?? "").trim() ||
+  !String(incidentLocation ?? "").trim()
+) {
+  return NextResponse.json(
+    {
+      error:
+        "Incident Type, Incident Date, Incident Time, and Incident Location are required.",
+    },
+    { status: 400 }
+  );
+}
 
     const existingCase = await prisma.case.findFirst({
       where: {
