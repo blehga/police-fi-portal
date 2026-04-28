@@ -35,57 +35,55 @@ model OrganizationDatabase {
   createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
 
-  organization Organization @relation(
-    fields: [organizationId],
-    references: [id],
-    onDelete: NoAction,
-    onUpdate: NoAction,
-    map: "fk_org_db_org"
-  )
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@map("organization_databases")
 }
 
 model SubscriptionPlan {
-  id        BigInt   @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  code      String   @unique(map: "code") @db.VarChar(50)
-  maxUsers  Int      @default(0) @map("max_users")
-  features  Json?    @map("features_json")
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
+  id                   BigInt   @id @default(autoincrement())
+  name                 String   @db.VarChar(100)
+  code                 String   @unique(map: "code") @db.VarChar(50)
+  maxUsers             Int      @default(0) @map("max_users")
+  features             Json?    @map("features_json")
 
-  subscriptions OrganizationSubscription[]
+  monthlyPrice         Decimal? @map("monthly_price") @db.Decimal(10, 2)
+  yearlyPrice          Decimal? @map("yearly_price") @db.Decimal(10, 2)
+
+  stripeMonthlyPriceId String?  @map("stripe_monthly_price_id") @db.VarChar(255)
+  stripeYearlyPriceId  String?  @map("stripe_yearly_price_id") @db.VarChar(255)
+
+  createdAt            DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
+
+  subscriptions        OrganizationSubscription[]
 
   @@map("subscription_plans")
 }
 
+
 model OrganizationSubscription {
-  id                 BigInt   @id @default(autoincrement())
-  organizationId     BigInt   @map("organization_id")
-  subscriptionPlanId BigInt   @map("subscription_plan_id")
-  status             String   @default("active") @db.VarChar(50)
-  startDate          DateTime? @map("start_date") @db.DateTime(0)
-  endDate            DateTime? @map("end_date") @db.DateTime(0)
-  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt          DateTime? @default(now()) @map("updated_at") @db.Timestamp(0)
+  id                  BigInt   @id @default(autoincrement())
 
-  organization    Organization    @relation(
-    fields: [organizationId],
-    references: [id],
-    onDelete: NoAction,
-    onUpdate: NoAction,
-    map: "fk_org_subs_org"
-  )
-  subscriptionPlan SubscriptionPlan @relation(
-    fields: [subscriptionPlanId],
-    references: [id],
-    onDelete: NoAction,
-    onUpdate: NoAction,
-    map: "fk_org_subs_plan"
-  )
+  organizationId      BigInt   @map("organization_id")
+  subscriptionPlanId  BigInt   @map("subscription_plan_id")
 
-  @@index([organizationId], map: "fk_org_subs_org")
-  @@index([subscriptionPlanId], map: "fk_org_subs_plan")
+  status              String   @default("pending")
+  billingCycle String @map("billing_cycle") @db.VarChar(20)
+
+  stripeCustomerId        String?  @map("stripe_customer_id") @db.VarChar(255)
+  stripeSubscriptionId String? @unique @map("stripe_subscription_id") @db.VarChar(255)
+  stripeCheckoutSessionId String?  @map("stripe_checkout_session_id") @db.VarChar(255)
+
+  startDate           DateTime? @map("start_date")
+  endDate             DateTime? @map("end_date")
+  cancelAtPeriodEnd       Boolean  @default(false) @map("cancel_at_period_end")
+
+  createdAt           DateTime? @default(now()) @map("created_at")
+  updatedAt           DateTime? @default(now()) @map("updated_at")
+
+organization Organization @relation(fields: [organizationId], references: [id])
+subscriptionPlan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+
   @@map("organization_subscriptions")
 }

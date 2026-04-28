@@ -1,9 +1,7 @@
-
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { getTenantDbBySlug } from "@/lib/tenant-db";
 import { logAudit } from "../../lib/audit/logAudit";
-
 
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET!,
@@ -14,15 +12,17 @@ export const authOptions = {
     Credentials({
       name: "Credentials",
       credentials: {
-        tenant: { label: "Tenant" },
-        username: { label: "Username" },
+        tenant: { label: "Tenant", type: "text" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
+
       async authorize(creds, req) {
         console.log("LOGIN FLOW HIT");
 
         const tenantSlug = String(creds?.tenant ?? "").trim().toLowerCase();
         const username = String(creds?.username ?? "").trim();
+        const password = String(creds?.password ?? "");
 
         const forwardedFor =
           req?.headers?.["x-forwarded-for"] ||
@@ -39,7 +39,7 @@ export const authOptions = {
           req?.headers?.["User-Agent"] ||
           null;
 
-        if (!tenantSlug || !username || !creds?.password) {
+        if (!tenantSlug || !username || !password) {
           console.log("LOGIN FAIL: MISSING_CREDENTIALS");
           return null;
         }
@@ -58,7 +58,6 @@ export const authOptions = {
         }
 
         const conn = await db.getConnection();
-        console.log("DB CONNECTION OK");
 
         try {
           const [users]: any = await conn.query(
@@ -74,33 +73,27 @@ export const authOptions = {
               isActive,
               sessionVersion
             FROM user
-            WHERE username = ?
+            WHERE username = ? OR email = ?
             LIMIT 1
             `,
-            [username]
+            [username, username]
           );
 
-          console.log("USER FOUND:", !!users.length);
-
           if (!users.length) {
-            try {
-              await logAudit(conn, {
-                userId: null,
-                actorUserId: null,
-                action: "LOGIN_FAILED",
-                entity: "auth",
-                entityId: null,
-                details: {
-                  tenant: slug,
-                  username,
-                  reason: "USER_NOT_FOUND",
-                  ip,
-                  userAgent,
-                },
-              });
-            } catch (err) {
-              console.error("LOGIN AUDIT FAILED:", err);
-            }
+            await safeAudit(conn, {
+              userId: null,
+              actorUserId: null,
+              action: "LOGIN_FAILED",
+              entity: "auth",
+              entityId: null,
+              details: {
+                tenant: slug,
+                username,
+                reason: "USER_NOT_FOUND",
+                ip,
+                userAgent,
+              },
+            });
 
             return null;
           }
@@ -108,49 +101,41 @@ export const authOptions = {
           const user = users[0];
 
           if (!user.isActive) {
-            try {
-              await logAudit(conn, {
-                userId: null,
-                actorUserId: String(user.id),
-                action: "LOGIN_FAILED",
-                entity: "auth",
-                entityId: String(user.id),
-                details: {
-                  tenant: slug,
-                  username: user.username,
-                  reason: "USER_INACTIVE",
-                  ip,
-                  userAgent,
-                },
-              });
-            } catch (err) {
-              console.error("LOGIN AUDIT FAILED:", err);
-            }
+            await safeAudit(conn, {
+              userId: null,
+              actorUserId: String(user.id),
+              action: "LOGIN_FAILED",
+              entity: "auth",
+              entityId: String(user.id),
+              details: {
+                tenant: slug,
+                username: user.username,
+                reason: "USER_INACTIVE",
+                ip,
+                userAgent,
+              },
+            });
 
             return null;
           }
 
-          const ok = await bcrypt.compare(creds.password, user.passwordHash);
+          const ok = await bcrypt.compare(password, user.passwordHash);
 
           if (!ok) {
-            try {
-              await logAudit(conn, {
-                userId: null,
-                actorUserId: String(user.id),
-                action: "LOGIN_FAILED",
-                entity: "auth",
-                entityId: String(user.id),
-                details: {
-                  tenant: slug,
-                  username: user.username,
-                  reason: "INVALID_PASSWORD",
-                  ip,
-                  userAgent,
-                },
-              });
-            } catch (err) {
-              console.error("LOGIN AUDIT FAILED:", err);
-            }
+            await safeAudit(conn, {
+              userId: null,
+              actorUserId: String(user.id),
+              action: "LOGIN_FAILED",
+              entity: "auth",
+              entityId: String(user.id),
+              details: {
+                tenant: slug,
+                username: user.username,
+                reason: "INVALID_PASSWORD",
+                ip,
+                userAgent,
+              },
+            });
 
             return null;
           }
@@ -168,23 +153,19 @@ export const authOptions = {
 
           const permissions = permRows.map((r: any) => r.code);
 
-          try {
-            await logAudit(conn, {
-              userId: null,
-              actorUserId: String(user.id),
-              action: "LOGIN_SUCCESS",
-              entity: "auth",
-              entityId: String(user.id),
-              details: {
-                tenant: slug,
-                username: user.username,
-                ip,
-                userAgent,
-              },
-            });
-          } catch (err) {
-            console.error("LOGIN AUDIT FAILED:", err);
-          }
+          await safeAudit(conn, {
+            userId: null,
+            actorUserId: String(user.id),
+            action: "LOGIN_SUCCESS",
+            entity: "auth",
+            entityId: String(user.id),
+            details: {
+              tenant: slug,
+              username: user.username,
+              ip,
+              userAgent,
+            },
+          });
 
           return {
             id: String(user.id),
@@ -248,3 +229,11 @@ export const authOptions = {
     signIn: "/login",
   },
 };
+
+async function safeAudit(conn: any, data: any) {
+  try {
+    await logAudit(conn, data);
+  } catch (err) {
+    console.error("LOGIN AUDIT FAILED:", err);
+  }
+}

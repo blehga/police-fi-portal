@@ -55,7 +55,7 @@ async function main() {
 
   const passwordHash = await bcrypt.hash("ChangeThisAdminPassword!", 12);
 
-  const adminUser = await prisma.user.upsert({
+    const adminUser = await prisma.user.upsert({
     where: { username: "admin" },
     update: {
       passwordHash,
@@ -66,6 +66,12 @@ async function main() {
       email: "admin@example.com",
       passwordHash,
       isActive: true,
+    },
+  });
+
+  await prisma.userRole.deleteMany({
+    where: {
+      userId: adminUser.id,
     },
   });
 

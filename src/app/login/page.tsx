@@ -1,15 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 
+type Tenant = {
+  name: string;
+  slug: string;
+};
+
 export default function LoginPage() {
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenant, setTenant] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tenantsLoading, setTenantsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTenants() {
+      try {
+        const res = await fetch("/api/tenants");
+        const data = await res.json();
+
+        setTenants(data);
+
+        if (data.length > 0) {
+          setTenant(data[0].slug);
+        }
+      } catch (error) {
+        setMsg("❌ Failed to load organizations");
+      } finally {
+        setTenantsLoading(false);
+      }
+    }
+
+    loadTenants();
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +55,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res?.error) {
-      setMsg("❌ Invalid tenant, username, or password");
+      setMsg("❌ Invalid organization, username, or password");
       return;
     }
 
@@ -45,25 +73,35 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-slate-900">
               Police FI Portal
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Sign in to continue
-            </p>
+            <p className="mt-2 text-sm text-slate-500">Sign in to continue</p>
           </div>
 
           <form onSubmit={submit} className="space-y-5" autoComplete="off">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Tenant
+                Organization
               </label>
-              <input
-                type="text"
-                placeholder="Enter tenant slug"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+
+              <select
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition bg-white"
                 value={tenant}
                 onChange={(e) => setTenant(e.target.value)}
-                autoComplete="off"
+                disabled={tenantsLoading}
                 required
-              />
+              >
+                {tenantsLoading ? (
+                  <option value="">Loading organizations...</option>
+                ) : (
+                  <>
+                    <option value="">Select organization</option>
+                    {tenants.map((t) => (
+                      <option key={t.slug} value={t.slug}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
             </div>
 
             <div>
@@ -101,47 +139,15 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  title={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12c.73-2.07 1.96-3.87 3.54-5.28" />
-                      <path d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58" />
-                      <path d="M1 1l22 22" />
-                      <path d="M9.88 4.24A10.94 10.94 0 0 1 12 4c5 0 9.27 3.11 11 8a11.05 11.05 0 0 1-4.15 5.09" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
+                  {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || tenantsLoading || !tenant}
               className="w-full rounded-xl bg-blue-600 text-white py-3 font-medium shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {loading ? "Signing in..." : "Login"}

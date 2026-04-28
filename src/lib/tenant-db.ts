@@ -18,7 +18,7 @@ export async function getTenantDbBySlug(slug: string) {
     JOIN organization_databases d
       ON d.organization_id = o.id
     WHERE o.slug = ?
-      AND o.status = 'active'
+      AND o.status IN ('active', 'pending')
       AND d.status = 'active'
     LIMIT 1
     `,
