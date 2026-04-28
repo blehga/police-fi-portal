@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
+import { requirePermission } from "@/lib/require-permission";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -59,52 +58,58 @@ export async function POST(
   const createdFiles: string[] = [];
 
   try {
-  const session: any = await getServerSession(authOptions as any);
-const currentUserId = session?.user?.id;
+    const auth = await requirePermission("REPORT_WRITE");
+    if (!auth.ok) return auth.response;
 
-    if (!currentUserId) {
+    const session: any = auth.session;
+    const currentUserId = session?.user?.id;
+    const tenantDbName = session?.tenantDbName;
+
+    if (!currentUserId || !tenantDbName) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const prisma = getTenantPrisma(tenantDbName);
 
     const { id } = await context.params;
     const body = await request.json().catch(() => ({}));
 
-   const {
-  subjectType,
-  agency,
-  reasonForStop,
-  locationOfStop,
-  disposition,
-  additionalComments,
-  beat,
-  fiDate,
-  fiDay,
-  fiTime,
-  people = [],
-  photos = [],
+    const {
+      subjectType,
+      agency,
+      reasonForStop,
+      locationOfStop,
+      disposition,
+      additionalComments,
+      beat,
+      fiDate,
+      fiDay,
+      fiTime,
+      people = [],
+      photos = [],
 
-  // ✅ ADD THESE
-  incidentType,
-  incidentDate,
-  incidentTime,
-  incidentLocation,
-} = body ?? {};
+      // ✅ ADD THESE
+      incidentType,
+      incidentDate,
+      incidentTime,
+      incidentLocation,
+    } = body ?? {};
 
-// ✅ ADD HERE
-if (
-  !String(incidentType ?? "").trim() ||
-  !String(incidentDate ?? "").trim() ||
-  !String(incidentTime ?? "").trim() ||
-  !String(incidentLocation ?? "").trim()
-) {
-  return NextResponse.json(
-    {
-      error:
-        "Incident Type, Incident Date, Incident Time, and Incident Location are required.",
-    },
-    { status: 400 }
-  );
-}
+    // ✅ ADD HERE
+    if (
+      !String(incidentType ?? "").trim() ||
+      !String(incidentDate ?? "").trim() ||
+      !String(incidentTime ?? "").trim() ||
+      !String(incidentLocation ?? "").trim()
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Incident Type, Incident Date, Incident Time, and Incident Location are required.",
+        },
+        { status: 400 }
+      );
+    }
 
     const existingCase = await prisma.case.findFirst({
       where: {
@@ -290,15 +295,15 @@ if (
             onProbation: Boolean(person.onProbation),
             probationOfficer: person.probationOfficer?.trim() || null,
             probationPhone: person.probationPhone?.trim() || null,
-            vehicleLicense:person.vehicleLicense?.trim() || null,
-            vehicleMake:person.vehicleMake?.trim() || null,
-            vehicleModel:person.vehicleModel?.trim() || null,
-            vehicleStyle:person.vehicleStyle?.trim() || null,
-            vehicleYear:person.vehicleYear?.trim() || null,
-            vehicleColor:person.vehicleColor?.trim() || null,
-            vehicleState:person.vehicleState?.trim() || null,
-            vehicleOddities:person.vehicleOddities?.trim() || null,
-            comments:person.comments?.trim() || null,
+            vehicleLicense: person.vehicleLicense?.trim() || null,
+            vehicleMake: person.vehicleMake?.trim() || null,
+            vehicleModel: person.vehicleModel?.trim() || null,
+            vehicleStyle: person.vehicleStyle?.trim() || null,
+            vehicleYear: person.vehicleYear?.trim() || null,
+            vehicleColor: person.vehicleColor?.trim() || null,
+            vehicleState: person.vehicleState?.trim() || null,
+            vehicleOddities: person.vehicleOddities?.trim() || null,
+            comments: person.comments?.trim() || null,
           },
         });
 

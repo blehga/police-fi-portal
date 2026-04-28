@@ -43,6 +43,7 @@ public/uploads/
 # Prisma generated files (IMPORTANT)
 
 src/generated/
+generated/
 
 # Prisma client (if generated elsewhere)
 

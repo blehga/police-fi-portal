@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
+import { requirePermission } from "@/lib/require-permission";
+
+function getPrismaFromSession(session: any) {
+  const tenantDbName = session?.tenantDbName;
+
+  if (!tenantDbName) {
+    throw new Error("Missing tenantDbName in session");
+  }
+
+  return getTenantPrisma(tenantDbName);
+}
 
 export async function GET(
   request: Request,
@@ -10,81 +19,88 @@ export async function GET(
   try {
     const { id } = await context.params;
 
-    const session = await getServerSession(authOptions);
-    const currentUserId = session?.user?.id ?? null;
+    const auth = await requirePermission("REPORT_READ");
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const session = auth.session;
+    const prisma = getPrismaFromSession(session);
+    const currentUserId = session.user.id;
 
     const data = await prisma.case.findFirst({
-  where: {
-    OR: [{ id }, { caseNumber: id }],
-  },
-  include: {
-    _count: {
-      select: {
-        forms: true,
-      },
-    },
-    forms: {
-      where: currentUserId
-        ? {
-            OR: [{ createdById: currentUserId }, { isShared: true }],
-          }
-        : {
-            isShared: true,
-          },
-      orderBy: {
-        createdAt: "asc",
+      where: {
+        OR: [{ id }, { caseNumber: id }],
       },
       include: {
-        formPersons: {
-          include: {
-            person: true,
+        _count: {
+          select: {
+            forms: true,
           },
         },
-         createdBy: {
-    select: {
-      firstName: true,
-      lastName: true,
-      username: true,
-    },
-  },
-        fiCard: {
-          select: {
-            id: true,
-            subjectType: true,
-            createdAt: true,
-            updatedAt: true,
-            photos: {
+        forms: {
+          where: currentUserId
+            ? {
+                OR: [{ createdById: currentUserId }, { isShared: true }],
+              }
+            : {
+                isShared: true,
+              },
+          orderBy: {
+            createdAt: "asc",
+          },
+          include: {
+            formPersons: {
+              include: {
+                person: true,
+              },
+            },
+            createdBy: {
+              select: {
+                firstName: true,
+                lastName: true,
+                username: true,
+              },
+            },
+            fiCard: {
               select: {
                 id: true,
-                url: true,
+                subjectType: true,
+                createdAt: true,
+                updatedAt: true,
+                photos: {
+                  select: {
+                    id: true,
+                    url: true,
+                  },
+                  orderBy: {
+                    createdAt: "asc",
+                  },
+                },
               },
-              orderBy: {
-                createdAt: "asc",
+            },
+            narrative: {
+              select: {
+                id: true,
+                narrativeText: true,
+                createdAt: true,
+                updatedAt: true,
               },
             },
           },
         },
-        narrative: {
+        persons: {
           select: {
             id: true,
-            narrativeText: true,
-            createdAt: true,
-            updatedAt: true,
+            firstName: true,
+            lastName: true,
+            fullName: true,
+            dob: true,
           },
         },
       },
-    },
-    persons: {
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        fullName: true,
-        dob: true,
-      },
-    },
-  },
-});
+    });
 
     if (!data) {
       return NextResponse.json({ error: "Case not found" }, { status: 404 });
@@ -113,18 +129,22 @@ export async function GET(
       })),
 
       forms: data.forms.map((f) => {
-        const isCreator = currentUserId ? f.createdById === currentUserId : false;
+        const isCreator = currentUserId
+          ? f.createdById === currentUserId
+          : false;
 
         return {
           id: f.id,
           formType: f.formType,
           createdAt: f.createdAt.toISOString(),
           updatedAt: f.updatedAt?.toISOString(),
-           createdByName:
-    [f.createdBy?.firstName, f.createdBy?.lastName]
-      .filter(Boolean)
-      .join(" ")
-      .trim() || f.createdBy?.username || "Unknown",
+          createdByName:
+            [f.createdBy?.firstName, f.createdBy?.lastName]
+              .filter(Boolean)
+              .join(" ")
+              .trim() ||
+            f.createdBy?.username ||
+            "Unknown",
           isShared: f.isShared,
           canEdit: isCreator,
           canDelete: isCreator,
@@ -186,11 +206,14 @@ export async function PATCH(
   try {
     const { id } = await context.params;
 
-    const session = await getServerSession(authOptions);
+    const auth = await requirePermission("REPORT_WRITE");
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!auth.ok) {
+      return auth.response;
     }
+
+    const session = auth.session;
+    const prisma = getPrismaFromSession(session);
 
     const body = await request.json().catch(() => ({}));
 

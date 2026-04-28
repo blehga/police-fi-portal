@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
+import { requirePermission } from "@/lib/require-permission";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -170,12 +169,18 @@ async function saveDataUrlImage(dataUrl: string, fiCardId: string) {
 
 export async function GET(request: Request, context: RouteContext) {
   try {
-    const session: any = await getServerSession(authOptions as any);
-    const currentUserId = session?.user?.id;
+    const auth = await requirePermission("REPORT_READ");
+    if (!auth.ok) return auth.response;
 
-    if (!currentUserId) {
+    const session: any = auth.session;
+    const currentUserId = session?.user?.id;
+    const tenantDbName = session?.tenantDbName;
+
+    if (!currentUserId || !tenantDbName) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const prisma = getTenantPrisma(tenantDbName);
 
     const { id, fiId } = await context.params;
 
@@ -256,7 +261,7 @@ export async function GET(request: Request, context: RouteContext) {
       photos: form.fiCard.photos.map((photo) => ({
         id: photo.id,
         url: photo.url,
-        caption: photo.caption?.trim() || null
+        caption: photo.caption?.trim() || null,
       })),
     });
   } catch (error) {
@@ -274,12 +279,18 @@ export async function PATCH(request: Request, context: RouteContext) {
   const deletedPhotoUrlsAfterCommit: string[] = [];
 
   try {
-    const session: any = await getServerSession(authOptions as any);
-    const currentUserId = session?.user?.id;
+    const auth = await requirePermission("REPORT_WRITE");
+    if (!auth.ok) return auth.response;
 
-    if (!currentUserId) {
+    const session: any = auth.session;
+    const currentUserId = session?.user?.id;
+    const tenantDbName = session?.tenantDbName;
+
+    if (!currentUserId || !tenantDbName) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const prisma = getTenantPrisma(tenantDbName);
 
     const { id, fiId } = await context.params;
     const body = await request.json().catch(() => ({}));
@@ -436,7 +447,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    const savedNewPhotos: { filePath: string; publicUrl: string; caption: string | null }[] = [];
+    const savedNewPhotos: {
+      filePath: string;
+      publicUrl: string;
+      caption: string | null;
+    }[] = [];
+
     for (const photo of newPhotoPayloads) {
       const saved = await saveDataUrlImage(photo.dataUrl, fiCardId);
       createdFiles.push(saved.filePath);
@@ -519,7 +535,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 
       const existingPersonIds = existingForm.formPersons
         .map((fp) => fp.personId)
-        .filter((value): value is string => typeof value === "string" && value.length > 0);
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.length > 0
+        );
 
       await tx.formPerson.deleteMany({
         where: {
@@ -611,7 +630,8 @@ export async function PATCH(request: Request, context: RouteContext) {
               employerZip: person.employerZip?.trim() || null,
               employerPhone: person.employerPhone?.trim() || null,
               gangName: person.gangName?.trim() || null,
-              gangMembershipLength: person.gangMembershipLength?.trim() || null,
+              gangMembershipLength:
+                person.gangMembershipLength?.trim() || null,
               onParole: Boolean(person.onParole),
               paroleOfficer: person.paroleOfficer?.trim() || null,
               parolePhone: person.parolePhone?.trim() || null,
@@ -708,7 +728,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       photos: updated.fiCard.photos.map((photo) => ({
         id: photo.id,
         url: photo.url,
-        caption: photo.caption?.trim() || null
+        caption: photo.caption?.trim() || null,
       })),
     });
   } catch (error) {

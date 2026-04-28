@@ -44,15 +44,18 @@ export const authOptions = {
           return null;
         }
 
-        let db: any;
-        let slug: string;
+       let db: any;
+let slug: string;
+let tenantDbName: string;
 
-        try {
-          const tenantResult = await getTenantDbBySlug(tenantSlug);
-          db = tenantResult.db;
-          slug = tenantResult.slug;
-          console.log("TENANT DB RESOLVED:", slug);
-        } catch (err) {
+try {
+  const tenantResult = await getTenantDbBySlug(tenantSlug);
+  db = tenantResult.db;
+  slug = tenantResult.slug;
+  tenantDbName = tenantResult.databaseName;
+
+  console.log("TENANT DB RESOLVED:", slug, tenantDbName);
+} catch (err) {
           console.error("LOGIN FAIL: TENANT_DB_LOOKUP_FAILED", err);
           return null;
         }
@@ -167,17 +170,18 @@ export const authOptions = {
             },
           });
 
-          return {
-            id: String(user.id),
-            username: user.username,
-            email: user.email ?? undefined,
-            firstName: user.firstName ?? null,
-            lastName: user.lastName ?? null,
-            badgeId: user.badgeId ?? null,
-            tenant: slug,
-            permissions,
-            sessionVersion: Number(user.sessionVersion ?? 1),
-          };
+         return {
+  id: String(user.id),
+  username: user.username,
+  email: user.email ?? undefined,
+  firstName: user.firstName ?? null,
+  lastName: user.lastName ?? null,
+  badgeId: user.badgeId ?? null,
+  tenant: slug,
+  tenantDbName,
+  permissions,
+  sessionVersion: Number(user.sessionVersion ?? 1),
+};
         } catch (err) {
           console.error("AUTHORIZE ERROR:", err);
           return null;
@@ -197,6 +201,7 @@ export const authOptions = {
         token.lastName = user.lastName ?? null;
         token.badgeId = user.badgeId ?? null;
         token.tenant = user.tenant;
+        token.tenantDbName = user.tenantDbName;
         token.permissions = Array.isArray(user.permissions)
           ? user.permissions
           : [];
@@ -209,6 +214,7 @@ export const authOptions = {
     async session({ session, token }: any) {
       session.username = token.username ?? session.user?.name;
       session.tenant = token.tenant;
+      session.tenantDbName = token.tenantDbName;
       session.permissions = Array.isArray(token.permissions)
         ? token.permissions
         : [];

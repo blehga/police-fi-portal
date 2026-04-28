@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import puppeteer from "puppeteer";
-import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
+import { requirePermission } from "@/lib/require-permission";
 
 export const dynamic = "force-dynamic";
 
@@ -57,13 +56,19 @@ function escapeHtml(value: string) {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requirePermission("REPORT_READ");
+    if (!auth.ok) return auth.response;
 
-    if (!session?.user?.id) {
+    const session: any = auth.session;
+    const currentUserId = session?.user?.id;
+    const tenantDbName = session?.tenantDbName;
+
+    if (!currentUserId || !tenantDbName) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUserId = session.user.id;
+    const prisma = getTenantPrisma(tenantDbName);
+
     const { id, narrativeId } = await context.params;
 
     const existingCase = await prisma.case.findFirst({

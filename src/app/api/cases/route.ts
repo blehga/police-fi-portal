@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
+import { requirePermission } from "@/lib/require-permission";
 
 function getTwoDigitYear(date: Date) {
   return Number(date.getFullYear().toString().slice(-2));
@@ -11,8 +10,27 @@ function formatCaseNumber(yearYY: number, seq: number) {
   return `${yearYY}-${String(seq).padStart(4, "0")}`;
 }
 
+function getPrismaFromSession(session: any) {
+  const tenantDbName = session?.tenantDbName;
+
+  if (!tenantDbName) {
+    throw new Error("Missing tenantDbName in session");
+  }
+
+  return getTenantPrisma(tenantDbName);
+}
+
 export async function GET(request: Request) {
   try {
+    const auth = await requirePermission("REPORT_READ");
+
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const session = auth.session;
+    const prisma = getPrismaFromSession(session);
+
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
 
@@ -25,20 +43,10 @@ export async function GET(request: Request) {
             ],
           }
         : undefined,
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
       include: {
-        forms: {
-          select: {
-            formType: true,
-          },
-        },
-        persons: {
-          select: {
-            id: true,
-          },
-        },
+        forms: { select: { formType: true } },
+        persons: { select: { id: true } },
         createdBy: {
           select: {
             firstName: true,
@@ -64,10 +72,12 @@ export async function GET(request: Request) {
       formTypes: item.forms.map((f) => f.formType),
       personCount: item.persons.length,
       createdByName:
-        [item.createdBy.firstName, item.createdBy.lastName]
+        [item.createdBy?.firstName, item.createdBy?.lastName]
           .filter(Boolean)
           .join(" ")
-          .trim() || item.createdBy.username,
+          .trim() ||
+        item.createdBy?.username ||
+        "Unknown",
     }));
 
     return NextResponse.json(result);
@@ -82,12 +92,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await requirePermission("REPORT_WRITE");
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!auth.ok) {
+      return auth.response;
     }
 
+    const session = auth.session;
+    const prisma = getPrismaFromSession(session);
     const currentUserId = session.user.id;
 
     const body = await request.json().catch(() => ({}));
@@ -117,15 +129,8 @@ export async function POST(request: Request) {
 
     const counter = await prisma.caseCounter.upsert({
       where: { year: yearYY },
-      update: {
-        last: {
-          increment: 1,
-        },
-      },
-      create: {
-        year: yearYY,
-        last: 1,
-      },
+      update: { last: { increment: 1 } },
+      create: { year: yearYY, last: 1 },
     });
 
     const seq = counter.last;

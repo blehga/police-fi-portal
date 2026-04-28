@@ -58,8 +58,9 @@ export async function getTenantDbBySlug(slug: string) {
   }
 
   return {
-    organizationId: org.organization_id,
-    slug: org.slug,
-    db: tenantPools.get(key)!,
-  };
+  organizationId: org.organization_id,
+  slug: org.slug,
+  databaseName: org.database_name, // ✅ ADD THIS
+  db: tenantPools.get(key)!,
+};
 }

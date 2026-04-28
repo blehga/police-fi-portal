@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { getTenantPrisma } from "@/lib/tenant-prisma";
+import { requirePermission } from "@/lib/require-permission";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +20,18 @@ function toDateOnlyString(value: Date | string | null | undefined) {
 
 export async function GET(request: Request, context: RouteContext) {
   try {
-    const session: any = await getServerSession(authOptions as any);
-    const currentUserId = session?.user?.id;
+    const auth = await requirePermission("REPORT_READ");
+    if (!auth.ok) return auth.response;
 
-    if (!currentUserId) {
+    const session: any = auth.session;
+    const currentUserId = session?.user?.id;
+    const tenantDbName = session?.tenantDbName;
+
+    if (!currentUserId || !tenantDbName) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const prisma = getTenantPrisma(tenantDbName);
 
     const { id, narrativeId } = await context.params;
 
@@ -99,12 +104,18 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const session: any = await getServerSession(authOptions as any);
-    const currentUserId = session?.user?.id;
+    const auth = await requirePermission("REPORT_WRITE");
+    if (!auth.ok) return auth.response;
 
-    if (!currentUserId) {
+    const session: any = auth.session;
+    const currentUserId = session?.user?.id;
+    const tenantDbName = session?.tenantDbName;
+
+    if (!currentUserId || !tenantDbName) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const prisma = getTenantPrisma(tenantDbName);
 
     const { id, narrativeId } = await context.params;
     const body = await request.json().catch(() => ({}));
@@ -116,32 +127,32 @@ export async function PATCH(request: Request, context: RouteContext) {
       narrativeDay,
       narrativeTime,
       incidentType,
-  incidentDate,
-  incidentTime,
-  incidentLocation,
+      incidentDate,
+      incidentTime,
+      incidentLocation,
     } = body ?? {};
 
     if (!String(content ?? "").trim()) {
-  return NextResponse.json(
-    { error: "Narrative content is required." },
-    { status: 400 }
-  );
-}
+      return NextResponse.json(
+        { error: "Narrative content is required." },
+        { status: 400 }
+      );
+    }
 
     if (
-  !String(incidentType ?? "").trim() ||
-  !String(incidentDate ?? "").trim() ||
-  !String(incidentTime ?? "").trim() ||
-  !String(incidentLocation ?? "").trim()
-) {
-  return NextResponse.json(
-    {
-      error:
-        "Incident Type, Incident Date, Incident Time, and Incident Location are required.",
-    },
-    { status: 400 }
-  );
-}
+      !String(incidentType ?? "").trim() ||
+      !String(incidentDate ?? "").trim() ||
+      !String(incidentTime ?? "").trim() ||
+      !String(incidentLocation ?? "").trim()
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Incident Type, Incident Date, Incident Time, and Incident Location are required.",
+        },
+        { status: 400 }
+      );
+    }
 
     const existingCase = await prisma.case.findFirst({
       where: {
