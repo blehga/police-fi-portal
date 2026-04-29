@@ -47,10 +47,14 @@ export default function LoginPage() {
 
     setLoading(false);
 
-    if (res?.error) {
-      setMsg("❌ Invalid username or password");
-      return;
-    }
+   if (res?.error) {
+  if (res.error.includes("ORGANIZATION_NOT_ACTIVE")) {
+    setMsg("❌ Your subscription is not active. Please complete payment.");
+  } else {
+    setMsg("❌ Invalid username or password");
+  }
+  return;
+}
 
     window.location.href = "/cases";
   }

@@ -4,12 +4,13 @@ import { platformDb } from "./platform-db";
 const tenantPools = new Map<string, mysql.Pool>();
 
 export async function getTenantDbBySlug(slug: string) {
-  const [rows] = await platformDb.query(
+  const [rows]: any = await platformDb.query(
     `
     SELECT
       o.id AS organization_id,
       o.name,
       o.slug,
+      o.status,
       d.database_name,
       d.host,
       d.port,
@@ -19,7 +20,6 @@ export async function getTenantDbBySlug(slug: string) {
     JOIN organization_databases d
       ON d.organization_id = o.id
     WHERE o.slug = ?
-      AND o.status IN ('active', 'pending')
       AND d.status = 'active'
     LIMIT 1
     `,
@@ -28,8 +28,9 @@ export async function getTenantDbBySlug(slug: string) {
 
   const result = rows as Array<{
     organization_id: number;
-    name: string; 
+    name: string;
     slug: string;
+    status: string;
     database_name: string;
     host: string;
     port: number;
@@ -60,10 +61,11 @@ export async function getTenantDbBySlug(slug: string) {
   }
 
   return {
-  organizationId: org.organization_id,
-  slug: org.slug,
-  name: org.name,  
-  databaseName: org.database_name, // ✅ ADD THIS
-  db: tenantPools.get(key)!,
-};
+    organizationId: org.organization_id,
+    slug: org.slug,
+    name: org.name,
+    databaseName: org.database_name,
+    status: org.status,
+    db: tenantPools.get(key)!,
+  };
 }

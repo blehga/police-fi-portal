@@ -50,11 +50,17 @@ let tenantDbName: string;
 let tenantName: string;
 
 try {
-  const tenantResult = await getTenantDbBySlug(tenantSlug);
-  db = tenantResult.db;
-  slug = tenantResult.slug;
-  tenantDbName = tenantResult.databaseName;
-  tenantName = tenantResult.name;
+ const tenantResult = await getTenantDbBySlug(tenantSlug);
+
+if (tenantResult.status !== "active") {
+  console.log("LOGIN FAIL: ORGANIZATION_NOT_ACTIVE", tenantSlug);
+  return null;
+}
+
+db = tenantResult.db;
+slug = tenantResult.slug;
+tenantDbName = tenantResult.databaseName;
+tenantName = tenantResult.name;
 
   console.log("TENANT DB RESOLVED:", slug, tenantDbName);
 } catch (err) {
