@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
-  const { organizationId, billingCycle } = await req.json();
+  const { organizationId, organizationSlug, billingCycle } = await req.json();
 
   const plan = await prisma.subscriptionPlan.findFirst({
     where: { code: "starter" },
@@ -30,12 +30,13 @@ export async function POST(req: Request) {
         quantity: 1,
       },
     ],
-    success_url: `${process.env.APP_URL}/payment/success`,
+    success_url: `${process.env.APP_URL}/payment/success?slug=${organizationSlug}`,
     cancel_url: `${process.env.APP_URL}/payment/cancel`,
-    metadata: {
-      organizationId: String(organizationId),
-      billingCycle,
-    },
+   metadata: {
+  organizationId: String(organizationId),
+  organizationSlug: String(organizationSlug || ""),
+  billingCycle,
+},
   });
 
   return NextResponse.json({ url: session.url });

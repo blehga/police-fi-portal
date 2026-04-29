@@ -4,6 +4,10 @@ import { useState } from "react";
 
 export default function PricingPage() {
   const [loading, setLoading] = useState<"monthly" | "yearly" | null>(null);
+  function getLocalOrganizationSlug() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("organizationSlug");
+}
 
   async function startCheckout(billingCycle: "monthly" | "yearly") {
     setLoading(billingCycle);
@@ -13,8 +17,9 @@ export default function PricingPage() {
       headers: {
         "Content-Type": "application/json",
       },
-     body: JSON.stringify({
+body: JSON.stringify({
   organizationId: Number(localStorage.getItem("orgId")),
+  organizationSlug: getLocalOrganizationSlug(),
   billingCycle,
 }),
     });

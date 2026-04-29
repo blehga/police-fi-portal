@@ -3,16 +3,10 @@ import { PrismaClient } from "@/generated/platform-client";
 import { createTenantDatabase } from "@/lib/platform/createTenantDatabase";
 import { runTenantMigrations } from "@/lib/platform/runTenantMigrations";
 import { seedTenantDatabase } from "@/lib/tenant-bootstrap";
+import { createOrgSlug } from "@/lib/create-org-slug";
 
 const prisma = new PrismaClient();
 
-function generateSlug(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export async function POST(req: Request) {
 const { company, email, password } = (await req.json()) as {
@@ -22,7 +16,7 @@ const { company, email, password } = (await req.json()) as {
 };
 
   try {
-    const slug = generateSlug(company);
+const slug = createOrgSlug(company);
 
     const org = await prisma.organization.create({
       data: {
@@ -50,9 +44,10 @@ const { company, email, password } = (await req.json()) as {
       },
     });
 
-    return NextResponse.json({
-      organizationId: Number(org.id),
-    });
+  return NextResponse.json({
+  organizationId: Number(org.id),
+  organizationSlug: org.slug,
+});
   } catch (err) {
     console.error("Register error:", err);
 
