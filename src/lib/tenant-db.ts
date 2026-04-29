@@ -8,6 +8,7 @@ export async function getTenantDbBySlug(slug: string) {
     `
     SELECT
       o.id AS organization_id,
+      o.name,
       o.slug,
       d.database_name,
       d.host,
@@ -27,6 +28,7 @@ export async function getTenantDbBySlug(slug: string) {
 
   const result = rows as Array<{
     organization_id: number;
+    name: string; 
     slug: string;
     database_name: string;
     host: string;
@@ -60,6 +62,7 @@ export async function getTenantDbBySlug(slug: string) {
   return {
   organizationId: org.organization_id,
   slug: org.slug,
+  name: org.name,  
   databaseName: org.database_name, // ✅ ADD THIS
   db: tenantPools.get(key)!,
 };

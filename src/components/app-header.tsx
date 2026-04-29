@@ -10,6 +10,10 @@ export default function AppHeader() {
   const pathname = usePathname();
   const { can } = usePermissions();
 
+  const firstName = (session as any)?.user?.firstName;
+const lastName = (session as any)?.user?.lastName;
+const fullName = `${firstName ?? ""} ${lastName ?? ""}`.trim();
+
   const navLink = (href: string, label: string, disabled = false) => {
     const isActive = pathname === href;
 
@@ -47,9 +51,9 @@ export default function AppHeader() {
               <div className="text-base font-semibold tracking-tight text-slate-900">
                 Reportrak
               </div>
-              <div className="text-xs text-slate-500">
-                Case Management System
-              </div>
+        <div className="text-sm font-medium text-slate-700">
+  {(session as any)?.tenantName}
+</div>
             </div>
           </Link>
 
@@ -67,9 +71,11 @@ export default function AppHeader() {
             <div className="relative group">
               <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-                  {((session as any)?.username ?? "U").charAt(0).toUpperCase()}
+                {(firstName?.charAt(0) || (session as any)?.username?.charAt(0) || "U").toUpperCase()}
                 </span>
-                <span>{(session as any)?.username ?? "Signed in"}</span>
+              <span>
+  {fullName || (session as any)?.username || "Signed in"}
+</span>
                 <span className="text-slate-400">▼</span>
               </button>
 
@@ -79,9 +85,9 @@ export default function AppHeader() {
                     <p className="text-xs uppercase tracking-wide text-slate-400">
                       Account
                     </p>
-                    <p className="mt-1 text-sm font-medium text-slate-800">
-                      {(session as any)?.username ?? "Signed in"}
-                    </p>
+                   <p className="mt-1 text-sm font-medium text-slate-800">
+  {fullName || (session as any)?.username || "Signed in"}
+</p>
                   </div>
 
                   <Link

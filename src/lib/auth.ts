@@ -44,15 +44,17 @@ export const authOptions = {
           return null;
         }
 
-       let db: any;
+    let db: any;
 let slug: string;
 let tenantDbName: string;
+let tenantName: string;
 
 try {
   const tenantResult = await getTenantDbBySlug(tenantSlug);
   db = tenantResult.db;
   slug = tenantResult.slug;
   tenantDbName = tenantResult.databaseName;
+  tenantName = tenantResult.name;
 
   console.log("TENANT DB RESOLVED:", slug, tenantDbName);
 } catch (err) {
@@ -178,6 +180,7 @@ try {
   lastName: user.lastName ?? null,
   badgeId: user.badgeId ?? null,
   tenant: slug,
+    tenantName,
   tenantDbName,
   permissions,
   sessionVersion: Number(user.sessionVersion ?? 1),
@@ -201,6 +204,7 @@ try {
         token.lastName = user.lastName ?? null;
         token.badgeId = user.badgeId ?? null;
         token.tenant = user.tenant;
+        token.tenantName = user.tenantName;
         token.tenantDbName = user.tenantDbName;
         token.permissions = Array.isArray(user.permissions)
           ? user.permissions
@@ -214,6 +218,7 @@ try {
     async session({ session, token }: any) {
       session.username = token.username ?? session.user?.name;
       session.tenant = token.tenant;
+      session.tenantName = token.tenantName;
       session.tenantDbName = token.tenantDbName;
       session.permissions = Array.isArray(token.permissions)
         ? token.permissions
