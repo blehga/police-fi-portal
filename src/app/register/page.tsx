@@ -25,13 +25,16 @@ export default function RegisterPage() {
 
     const data = await res.json();
 
-    if (data.organizationId) {
-      // store temporarily (simple approach for now)
-      localStorage.setItem("orgId", data.organizationId);
+ if (data.organizationId) {
+  localStorage.setItem("orgId", String(data.organizationId));
 
-      window.location.href = "/pricing";
-      return;
-    }
+  if (data.organizationSlug) {
+    localStorage.setItem("organizationSlug", data.organizationSlug);
+  }
+
+  window.location.href = "/pricing";
+  return;
+}
 
     alert(data.error || "Registration failed");
     setLoading(false);

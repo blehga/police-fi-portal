@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "../../generated/prisma/client";
+import { PrismaClient } from "@/generated/prisma/client";
 
 function getTenantDatabaseUrl(databaseName: string) {
-  const baseUrl = process.env.DATABASE_URL;
+ const baseUrl = process.env.DATABASE_URL || process.env.PLATFORM_DATABASE_URL;
 
   if (!baseUrl) {
     throw new Error("DATABASE_URL is not set");

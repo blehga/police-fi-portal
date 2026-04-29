@@ -1,41 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 
-function getTenantFromHostname() {
-  if (typeof window === "undefined") return "";
-
-  const hostname = window.location.hostname;
-
-  if (hostname === "localhost") return "";
-
-  const subdomain = hostname.split(".")[0];
-
-  if (["www", "app"].includes(subdomain)) return "";
-
-  return subdomain;
-}
+type Tenant = {
+  name: string;
+  slug: string;
+};
 
 export default function LoginPage() {
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenant, setTenant] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tenantsLoading, setTenantsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTenants() {
+      try {
+        const res = await fetch("/api/tenants");
+        const data = await res.json();
+
+        setTenants(data);
+
+        if (data.length > 0) {
+          setTenant(data[0].slug);
+        }
+      } catch (error) {
+        setMsg("❌ Failed to load organizations");
+      } finally {
+        setTenantsLoading(false);
+      }
+    }
+
+    loadTenants();
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
     setLoading(true);
-
-    const tenant = getTenantFromHostname();
-
-    if (!tenant) {
-      setLoading(false);
-      setMsg("❌ Missing organization in URL. Please use your workspace login link.");
-      return;
-    }
 
     const res = await signIn("credentials", {
       tenant,
@@ -48,7 +55,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res?.error) {
-      setMsg("❌ Invalid username or password");
+      setMsg("❌ Invalid organization, username, or password");
       return;
     }
 
@@ -70,6 +77,33 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={submit} className="space-y-5" autoComplete="off">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Organization
+              </label>
+
+              <select
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition bg-white"
+                value={tenant}
+                onChange={(e) => setTenant(e.target.value)}
+                disabled={tenantsLoading}
+                required
+              >
+                {tenantsLoading ? (
+                  <option value="">Loading organizations...</option>
+                ) : (
+                  <>
+                    <option value="">Select organization</option>
+                    {tenants.map((t) => (
+                      <option key={t.slug} value={t.slug}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Username
@@ -113,7 +147,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || tenantsLoading || !tenant}
               className="w-full rounded-xl bg-blue-600 text-white py-3 font-medium shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {loading ? "Signing in..." : "Login"}
