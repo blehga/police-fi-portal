@@ -113,8 +113,8 @@ async function main() {
   });
 
   const adminPerms = new Set<string>();
-  adminWithRoles?.roles.forEach((ur) => {
-    ur.role.permissions.forEach((rp) => {
+ adminWithRoles?.roles.forEach((ur: any) => {
+   ur.role.permissions.forEach((rp: any) => {
       adminPerms.add(rp.permission.code);
     });
   });
