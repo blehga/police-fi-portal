@@ -6,9 +6,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const tenantSlug =
       req.headers.get("x-tenant-slug")?.trim().toLowerCase() || undefined;
 
@@ -43,7 +45,7 @@ export async function POST(
       WHERE id = ?
       LIMIT 1
       `,
-      [params.id]
+      [id]
     );
 
     const user = userRows?.[0];

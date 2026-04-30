@@ -4,9 +4,11 @@ import { requireTenantAccess } from "@/lib/tenant-session";
 // GET /api/admin/users/[id]
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const tenantSlug =
       req.headers.get("x-tenant-slug")?.trim().toLowerCase() || undefined;
 
@@ -44,14 +46,11 @@ export async function GET(
       LEFT JOIN permission p ON p.id = rp.permissionId
       WHERE u.id = ?
       `,
-      [params.id]
+      [id]
     );
 
     if (!rows || rows.length === 0) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const first = rows[0];
@@ -88,9 +87,11 @@ export async function GET(
 // PATCH /api/admin/users/[id]
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const tenantSlug =
       req.headers.get("x-tenant-slug")?.trim().toLowerCase() || undefined;
 
@@ -107,7 +108,6 @@ export async function PATCH(
     }
 
     const { db } = gate;
-
     const body = await req.json();
 
     const firstName = String(body?.firstName ?? "").trim();
@@ -118,15 +118,11 @@ export async function PATCH(
 
     if (!firstName || !lastName || !badgeId || !username) {
       return NextResponse.json(
-        {
-          error:
-            "firstName, lastName, badgeId, and username are required",
-        },
+        { error: "firstName, lastName, badgeId, and username are required" },
         { status: 400 }
       );
     }
 
-    // Check duplicates
     const [existing]: any = await db.query(
       `
       SELECT id
@@ -135,7 +131,7 @@ export async function PATCH(
         AND id <> ?
       LIMIT 1
       `,
-      [username, badgeId, email, email, params.id]
+      [username, badgeId, email, email, id]
     );
 
     if (existing?.length) {
@@ -157,7 +153,7 @@ export async function PATCH(
         updatedAt = NOW()
       WHERE id = ?
       `,
-      [firstName, lastName, badgeId, username, email || null, params.id]
+      [firstName, lastName, badgeId, username, email || null, id]
     );
 
     const [rows]: any = await db.query(
@@ -167,7 +163,7 @@ export async function PATCH(
       WHERE id = ?
       LIMIT 1
       `,
-      [params.id]
+      [id]
     );
 
     const user = rows?.[0];

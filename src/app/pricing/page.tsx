@@ -1,42 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function PricingPage() {
+function PricingPageContent() {
   const [loading, setLoading] = useState<"monthly" | "yearly" | null>(null);
   const searchParams = useSearchParams();
 
-const orgId =
-  searchParams.get("orgId") ||
-  (typeof window !== "undefined" ? localStorage.getItem("orgId") : null);
+  const orgId =
+    searchParams.get("orgId") ||
+    (typeof window !== "undefined" ? localStorage.getItem("orgId") : null);
 
-const organizationSlug =
-  searchParams.get("slug") ||
-  (typeof window !== "undefined"
-    ? localStorage.getItem("organizationSlug")
-    : null);
- 
+  const organizationSlug =
+    searchParams.get("slug") ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("organizationSlug")
+      : null);
 
   async function startCheckout(billingCycle: "monthly" | "yearly") {
     setLoading(billingCycle);
 
     if (!orgId || !organizationSlug) {
-  alert("Missing organization details. Please use your setup link again.");
-  setLoading(null);
-  return;
-}
+      alert("Missing organization details. Please use your setup link again.");
+      setLoading(null);
+      return;
+    }
 
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-body: JSON.stringify({
-  organizationId: Number(orgId),
-  organizationSlug,
-  billingCycle,
-}),
+      body: JSON.stringify({
+        organizationId: Number(orgId),
+        organizationSlug,
+        billingCycle,
+      }),
     });
 
     const data = await res.json();
@@ -91,5 +90,13 @@ body: JSON.stringify({
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={null}>
+      <PricingPageContent />
+    </Suspense>
   );
 }

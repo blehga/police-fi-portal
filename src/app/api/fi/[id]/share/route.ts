@@ -8,13 +8,15 @@ function canEditFi(fi: any, currentUserId: string) {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const access = await requireTenantAccess({
       permissionCode: "REPORT_WRITE",
       req,
-      route: `/api/fi/${params.id}/share`,
+      route: `/api/fi/${id}/share`,
       method: "PATCH",
     });
 
@@ -51,7 +53,7 @@ export async function PATCH(
         WHERE id = ?
         LIMIT 1
         `,
-        [params.id]
+        [id]
       );
 
       const fi = rows?.[0];
@@ -77,7 +79,7 @@ export async function PATCH(
           updatedAt = NOW()
         WHERE id = ?
         `,
-        [isShared, params.id]
+        [isShared, id]
       );
 
       await logAudit(conn, {

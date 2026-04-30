@@ -12,13 +12,15 @@ function canEditFi(fi: any, currentUserId: string) {
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const access = await requireTenantAccess({
-      permissionCode: "REPORT_WRITE)",
+      permissionCode: "REPORT_WRITE",
       req,
-      route: `/api/fi/${params.id}/upload`,
+      route: `/api/fi/${id}/upload`,
       method: "POST",
     });
 
@@ -55,7 +57,7 @@ export async function POST(
         GROUP BY f.id, f.caseNumber, f.createdById
         LIMIT 1
         `,
-        [params.id]
+        [id]
       );
 
       const fi = fiRows?.[0];
@@ -131,7 +133,7 @@ export async function POST(
           INSERT INTO fiphoto (id, fiCardId, url, createdAt)
           VALUES (UUID(), ?, ?, NOW())
           `,
-          [params.id, url]
+          [id, url]
         );
 
         const [photoRows]: any = await conn.query(
@@ -143,10 +145,11 @@ export async function POST(
           ORDER BY createdAt DESC
           LIMIT 1
           `,
-          [params.id, url]
+          [id, url]
         );
 
         const photo = photoRows?.[0];
+
         if (photo) {
           created.push({
             id: photo.id,
@@ -160,7 +163,7 @@ export async function POST(
             entity: "fiphoto",
             entityId: photo.id,
             details: {
-              fiCardId: params.id,
+              fiCardId: id,
               caseNumber: fi.caseNumber,
               url: photo.url,
             },

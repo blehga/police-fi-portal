@@ -8,13 +8,15 @@ export const dynamic = "force-dynamic";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { photoId: string } }
+  context: { params: Promise<{ photoId: string }> }
 ) {
   try {
+    const { photoId } = await context.params;
+
     const access = await requireTenantAccess({
-      permissionCode: "REPORT_DELETE)",
+      permissionCode: "REPORT_DELETE",
       req,
-      route: `/api/fi/photo/${params.photoId}`,
+      route: `/api/fi/photo/${photoId}`,
       method: "DELETE",
     });
 
@@ -51,10 +53,11 @@ export async function DELETE(
         WHERE p.id = ?
         LIMIT 1
         `,
-        [params.photoId]
+        [photoId]
       );
 
       const photo = photoRows?.[0];
+
       if (!photo) {
         await conn.rollback();
         return NextResponse.json({ error: "Photo not found" }, { status: 404 });
@@ -73,7 +76,7 @@ export async function DELETE(
         DELETE FROM fiphoto
         WHERE id = ?
         `,
-        [params.photoId]
+        [photoId]
       );
 
       if (!result?.affectedRows) {

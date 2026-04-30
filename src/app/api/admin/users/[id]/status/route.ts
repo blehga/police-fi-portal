@@ -5,9 +5,11 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const tenantSlug =
       req.headers.get("x-tenant-slug")?.trim().toLowerCase() || undefined;
 
@@ -25,7 +27,7 @@ export async function PATCH(
 
     const { db, userId } = gate;
 
-    if (userId === params.id) {
+    if (userId === id) {
       return NextResponse.json(
         { error: "You cannot disable your own account" },
         { status: 400 }
@@ -48,7 +50,7 @@ export async function PATCH(
       WHERE id = ?
       LIMIT 1
       `,
-      [params.id]
+      [id]
     );
 
     const existing = userRows?.[0];
@@ -65,13 +67,13 @@ export async function PATCH(
           updatedAt = NOW()
       WHERE id = ?
       `,
-      [body.isActive ? 1 : 0, params.id]
+      [body.isActive ? 1 : 0, id]
     );
 
     return NextResponse.json({
       ok: true,
       user: {
-        id: params.id,
+        id,
         isActive: body.isActive,
       },
     });

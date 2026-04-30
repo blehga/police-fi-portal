@@ -1,7 +1,7 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 
 function getWorkspaceUrl(slug: string) {
   const rootDomain =
@@ -15,7 +15,7 @@ function getWorkspaceUrl(slug: string) {
   return `https://${slug}.${rootDomain}/login`;
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const params = useSearchParams();
   const slug = params.get("slug");
 
@@ -53,5 +53,13 @@ export default function SuccessPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <SuccessPageContent />
+    </Suspense>
   );
 }

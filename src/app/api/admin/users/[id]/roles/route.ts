@@ -5,9 +5,11 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const tenantSlug =
       req.headers.get("x-tenant-slug")?.trim().toLowerCase() || undefined;
 
@@ -44,7 +46,7 @@ export async function PATCH(
       WHERE id = ?
       LIMIT 1
       `,
-      [params.id]
+      [id]
     );
 
     const user = userRows?.[0];
@@ -67,9 +69,9 @@ export async function PATCH(
     const roles = roleRows ?? [];
 
     const foundRoleNames = new Set(roles.map((r: any) => r.name));
-  const missingRoles = roleNames.filter(
-  (name: string) => !foundRoleNames.has(name)
-);
+    const missingRoles = roleNames.filter(
+      (name: string) => !foundRoleNames.has(name)
+    );
 
     if (missingRoles.length > 0) {
       return NextResponse.json(
@@ -88,7 +90,7 @@ export async function PATCH(
         DELETE FROM userrole
         WHERE userId = ?
         `,
-        [params.id]
+        [id]
       );
 
       for (const role of roles) {
@@ -97,7 +99,7 @@ export async function PATCH(
           INSERT INTO userrole (userId, roleId)
           VALUES (?, ?)
           `,
-          [params.id, role.id]
+          [id, role.id]
         );
       }
 
@@ -108,7 +110,7 @@ export async function PATCH(
             updatedAt = NOW()
         WHERE id = ?
         `,
-        [params.id]
+        [id]
       );
 
       await conn.commit();

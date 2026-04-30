@@ -1,29 +1,27 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from "@prisma/client";
 
-const prisma = new PrismaClient();
+type PrismaLike = PrismaClient | Prisma.TransactionClient;
 
-type PrismaLike = PrismaClient;
+export type AuditAction =
+  | "LOGIN_SUCCESS"
+  | "LOGIN_FAILED"
+  | "LOGOUT"
+  | "CREATE"
+  | "UPDATE"
+  | "DELETE"
+  | "ACCESS_DENIED"
+  | "PASSWORD_CHANGED"
+  | "ROLE_ASSIGNED"
+  | "ROLE_REMOVED";
 
-type AuditAction =
-  | 'LOGIN_SUCCESS'
-  | 'LOGIN_FAILED'
-  | 'LOGOUT'
-  | 'CREATE'
-  | 'UPDATE'
-  | 'DELETE'
-  | 'ACCESS_DENIED'
-  | 'PASSWORD_CHANGED'
-  | 'ROLE_ASSIGNED'
-  | 'ROLE_REMOVED';
-
-type AuditEntity =
-  | 'AUTH'
-  | 'USER'
-  | 'ROLE'
-  | 'USER_ROLE'
-  | 'FICARD'
-  | 'PHOTO'
-  | 'PERMISSION';
+export type AuditEntity =
+  | "AUTH"
+  | "USER"
+  | "ROLE"
+  | "USER_ROLE"
+  | "FICARD"
+  | "PHOTO"
+  | "PERMISSION";
 
 interface AuditLogInput {
   userId?: number | null;
@@ -35,36 +33,36 @@ interface AuditLogInput {
 }
 
 const SENSITIVE_KEYS = new Set([
-  'password',
-  'passwordHash',
-  'newPassword',
-  'oldPassword',
-  'token',
-  'accessToken',
-  'refreshToken',
-  'authorization',
-  'cookie',
-  'secret',
-  'apiKey',
-  'resetToken',
-  'ssn',
+  "password",
+  "passwordHash",
+  "newPassword",
+  "oldPassword",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "authorization",
+  "cookie",
+  "secret",
+  "apiKey",
+  "resetToken",
+  "ssn",
 ]);
 
 function sanitizeAuditDetails(value: unknown, depth = 0): unknown {
-  if (depth > 5) return '[truncated]';
+  if (depth > 5) return "[truncated]";
   if (value == null) return value;
 
   if (Array.isArray(value)) {
     return value.map((item) => sanitizeAuditDetails(item, depth + 1));
   }
 
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     const out: Record<string, unknown> = {};
 
     for (const [key, val] of Object.entries(obj)) {
       if (SENSITIVE_KEYS.has(key)) {
-        out[key] = '[redacted]';
+        out[key] = "[redacted]";
       } else {
         out[key] = sanitizeAuditDetails(val, depth + 1);
       }
@@ -73,14 +71,14 @@ function sanitizeAuditDetails(value: unknown, depth = 0): unknown {
     return out;
   }
 
-  if (typeof value === 'string' && value.length > 1000) {
+  if (typeof value === "string" && value.length > 1000) {
     return `${value.slice(0, 1000)}...[truncated]`;
   }
 
   return value;
 }
 
-async function writeAuditLog(
+export async function writeAuditLog(
   prisma: PrismaLike,
   input: AuditLogInput
 ) {
@@ -97,27 +95,3 @@ async function writeAuditLog(
     },
   });
 }
-
-async function main() {
-  const row = await writeAuditLog(prisma, {
-    actorUserId: 'test-user-123',
-    action: 'CREATE',
-    entity: 'FICARD',
-    entityId: 'test-card-001',
-    details: {
-      test: true,
-      message: 'helper inline test',
-    },
-  });
-
-  console.log('Inserted row:', row);
-}
-
-main()
-  .catch((err) => {
-    console.error('Audit test failed:', err);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });

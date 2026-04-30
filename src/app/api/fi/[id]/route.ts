@@ -12,13 +12,15 @@ function canEditFi(fi: any, currentUserId: string) {
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const access = await requireTenantAccess({
       permissionCode: "REPORT_READ",
       req,
-      route: `/api/fi/${params.id}`,
+      route: `/api/fi/${id}`,
       method: "GET",
     });
 
@@ -53,10 +55,11 @@ export async function GET(
       WHERE id = ?
       LIMIT 1
       `,
-      [params.id]
+      [id]
     );
 
     const fi = fiRows?.[0];
+
     if (!fi) {
       return NextResponse.json({ error: "FI not found" }, { status: 404 });
     }
@@ -78,7 +81,7 @@ export async function GET(
       WHERE fiCardId = ?
       ORDER BY createdAt ASC
       `,
-      [params.id]
+      [id]
     );
 
     return NextResponse.json(
@@ -101,13 +104,15 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const access = await requireTenantAccess({
       permissionCode: "REPORT_WRITE",
       req,
-      route: `/api/fi/${params.id}`,
+      route: `/api/fi/${id}`,
       method: "PATCH",
     });
 
@@ -154,10 +159,11 @@ export async function PATCH(
         WHERE id = ?
         LIMIT 1
         `,
-        [params.id]
+        [id]
       );
 
       const before = beforeRows?.[0];
+
       if (!before) {
         await conn.rollback();
         return NextResponse.json({ error: "FI not found" }, { status: 404 });
@@ -182,7 +188,7 @@ export async function PATCH(
           updatedAt = NOW()
         WHERE id = ?
         `,
-        [firstName, lastName, subjectType, incidentType, params.id]
+        [firstName, lastName, subjectType, incidentType, id]
       );
 
       const [updatedRows]: any = await conn.query(
@@ -202,10 +208,11 @@ export async function PATCH(
         WHERE id = ?
         LIMIT 1
         `,
-        [params.id]
+        [id]
       );
 
       const updated = updatedRows?.[0];
+
       if (!updated) {
         throw new Error("Failed to load updated FI");
       }
@@ -215,12 +222,15 @@ export async function PATCH(
       if (before.firstName !== firstName) {
         changes.firstName = { from: before.firstName, to: firstName };
       }
+
       if (before.lastName !== lastName) {
         changes.lastName = { from: before.lastName, to: lastName };
       }
+
       if (before.subjectType !== subjectType) {
         changes.subjectType = { from: before.subjectType, to: subjectType };
       }
+
       if (before.incidentType !== incidentType) {
         changes.incidentType = { from: before.incidentType, to: incidentType };
       }
@@ -257,13 +267,15 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+
     const access = await requireTenantAccess({
       permissionCode: "REPORT_DELETE",
       req,
-      route: `/api/fi/${params.id}`,
+      route: `/api/fi/${id}`,
       method: "DELETE",
     });
 
@@ -301,10 +313,11 @@ export async function DELETE(
         WHERE id = ?
         LIMIT 1
         `,
-        [params.id]
+        [id]
       );
 
       const existing = existsRows?.[0];
+
       if (!existing) {
         await conn.rollback();
         return NextResponse.json(
@@ -326,7 +339,7 @@ export async function DELETE(
         DELETE FROM ficard
         WHERE id = ?
         `,
-        [params.id]
+        [id]
       );
 
       await logAudit(conn, {

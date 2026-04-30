@@ -58,13 +58,14 @@ type FiPdfRow = {
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   try {
     const access = await requireTenantAccess({
       permissionCode: "REPORT_READ",
       req,
-      route: `/api/fi/${params.id}/pdf`,
+      route: `/api/fi/${id}/pdf`,
       method: "GET",
     });
 
@@ -106,7 +107,7 @@ export async function GET(
       WHERE f.id = ?
       ORDER BY p.createdAt ASC
       `,
-      [params.id]
+      [id]
     );
 
     const resultRows = (rows as FiPdfRow[]) ?? [];
