@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 // scripts/repair-rbac.ts
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
