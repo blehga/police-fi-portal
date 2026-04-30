@@ -90,7 +90,7 @@ export async function writeAuditLog(
       entity: input.entity,
       entityId: input.entityId ?? null,
       details: input.details
-        ? (sanitizeAuditDetails(input.details) as Prisma.InputJsonValue)
+        ? (sanitizeAuditDetails(input.details) as any)
         : undefined,
     },
   });
