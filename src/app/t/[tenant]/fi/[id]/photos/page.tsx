@@ -5,12 +5,11 @@ import type { RowDataPacket } from "mysql2";
 import { getTenantDbBySlug } from "@/lib/tenant-db";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     tenant: string;
     id: string;
-  };
+  }>;
 };
-
 type FIRecordRow = RowDataPacket & {
   id: string;
   caseNumber: string;
@@ -23,7 +22,7 @@ type FIPhotoRow = RowDataPacket & {
 };
 
 export default async function FIPhotosPage({ params }: PageProps) {
-  const { tenant, id } = params;
+  const { tenant, id } = await params;
 
   const { db } = await getTenantDbBySlug(tenant);
 

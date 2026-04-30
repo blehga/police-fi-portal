@@ -29,8 +29,9 @@ type QueryRow = {
 export default async function FIPhotosPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -79,7 +80,7 @@ export default async function FIPhotosPage({
     WHERE f.id = ?
     ORDER BY p.createdAt DESC
     `,
-    [params.id]
+    [id]
   );
 
   const resultRows = (rows as QueryRow[]) ?? [];

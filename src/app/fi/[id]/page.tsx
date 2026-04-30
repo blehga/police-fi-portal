@@ -47,8 +47,10 @@ type QueryRow = {
 export default async function FIDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -94,7 +96,7 @@ export default async function FIDetailPage({
     WHERE f.id = ?
     ORDER BY p.createdAt DESC
     `,
-    [params.id]
+    [id]
   );
 
   const resultRows = (rows as QueryRow[]) ?? [];
@@ -150,27 +152,27 @@ export default async function FIDetailPage({
               </p>
             </div>
 
-  <div className="flex items-center gap-3 flex-wrap">
-  {fi.canEdit && (
-    <>
-      <FiShareToggle fiId={fi.id} initialShared={fi.isShared} />
+            <div className="flex items-center gap-3 flex-wrap">
+              {fi.canEdit && (
+                <>
+                  <FiShareToggle fiId={fi.id} initialShared={fi.isShared} />
 
-      <a
-        href={`/fi/${fi.id}/edit`}
-        className="inline-flex items-center justify-center h-10 rounded-xl bg-blue-600 text-white px-3 font-medium shadow-md hover:bg-blue-700 transition"
-      >
-        Edit
-      </a>
-    </>
-  )}
+                  <a
+                    href={`/fi/${fi.id}/edit`}
+                    className="inline-flex items-center justify-center h-10 rounded-xl bg-blue-600 text-white px-3 font-medium shadow-md hover:bg-blue-700 transition"
+                  >
+                    Edit
+                  </a>
+                </>
+              )}
 
-  <a
-    href="/fi-list"
-    className="inline-flex items-center justify-center h-10 rounded-xl border border-slate-300 px-4 font-medium text-slate-700 hover:bg-slate-50 transition"
-  >
-    ← Back to List
-  </a>
-</div>
+              <a
+                href="/fi-list"
+                className="inline-flex items-center justify-center h-10 rounded-xl border border-slate-300 px-4 font-medium text-slate-700 hover:bg-slate-50 transition"
+              >
+                ← Back to List
+              </a>
+            </div>
           </div>
 
           <div className="p-6">
