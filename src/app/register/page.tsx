@@ -32,7 +32,7 @@ export default function RegisterPage() {
     localStorage.setItem("organizationSlug", data.organizationSlug);
   }
 
-  window.location.href = "/pricing";
+window.location.href = `/pricing?orgId=${data.organizationId}&slug=${data.organizationSlug}`;
   return;
 }
 
