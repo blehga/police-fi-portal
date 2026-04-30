@@ -37,7 +37,9 @@ async function main() {
 
   // 3) Load permissions
   const permissions = await prisma.permission.findMany();
-  const byCode = Object.fromEntries(permissions.map((p) => [p.code, p]));
+ const byCode = Object.fromEntries(
+  permissions.map((p: any) => [p.code, p])
+);
 
   // 4) Desired role -> permission mapping
   const rolePermMap = [
