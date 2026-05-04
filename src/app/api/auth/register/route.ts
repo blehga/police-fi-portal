@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@/generated/platform-client";
 import { createTenantDatabase } from "@/lib/platform/createTenantDatabase";
-import { runTenantMigrations } from "@/lib/platform/runTenantMigrations";
-import { seedTenantDatabase } from "@/lib/tenant-bootstrap";
 import { createOrgSlug } from "@/lib/create-org-slug";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -28,10 +27,6 @@ const slug = createOrgSlug(company);
 
     const db = await createTenantDatabase(slug);
 
-    await runTenantMigrations(db.databaseName);
-
-    await seedTenantDatabase(db.databaseName, email, password);
-
     await prisma.organizationDatabase.create({
       data: {
         organizationId: org.id,
@@ -44,10 +39,24 @@ const slug = createOrgSlug(company);
       },
     });
 
-  return NextResponse.json({
+    const passwordHash = await bcrypt.hash(password, 12);
+
+await prisma.provisioningJob.create({
+  data: {
+    organizationId: org.id,
+    databaseName: db.databaseName,
+    email,
+    passwordHash,
+    status: "pending",
+  },
+});
+
+ return NextResponse.json({
   organizationId: Number(org.id),
   organizationSlug: org.slug,
+  status: "provisioning",
 });
+
   } catch (err) {
     console.error("Register error:", err);
 
