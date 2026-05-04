@@ -75,7 +75,12 @@ async function main() {
       console.error("Worker error:", err);
     }
 
-    // wait 5 seconds before next check
     await new Promise((res) => setTimeout(res, 5000));
   }
 }
+
+main().catch(async (err) => {
+  console.error("Fatal worker error:", err);
+  await prisma.$disconnect();
+  process.exit(1);
+});
