@@ -1,4 +1,4 @@
-import { PrismaClient } from "../src/generated/platform-client";
+import { PrismaClient } from "../src/generated/platform-client/index.js";
 import { exec } from "child_process";
 import { promisify } from "util";
 
