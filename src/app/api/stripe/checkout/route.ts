@@ -32,10 +32,18 @@ export async function POST(req: Request) {
     ],
     success_url: `${process.env.APP_URL}/payment/success?slug=${organizationSlug}`,
     cancel_url: `${process.env.APP_URL}/payment/cancel`,
-   metadata: {
+  metadata: {
   organizationId: String(organizationId),
   organizationSlug: String(organizationSlug || ""),
   billingCycle,
+},
+
+subscription_data: {
+  metadata: {
+    organizationId: String(organizationId),
+    organizationSlug: String(organizationSlug || ""),
+    billingCycle,
+  },
 },
   });
 
