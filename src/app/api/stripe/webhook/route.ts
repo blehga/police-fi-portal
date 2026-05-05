@@ -5,12 +5,21 @@ import { PrismaClient } from "@/generated/platform-client";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const prisma = new PrismaClient();
 
+function stripeDate(value: unknown, fallback: Date | null = null) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? new Date(value * 1000)
+    : fallback;
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
 
   if (!signature) {
-    return NextResponse.json({ error: "Missing Stripe signature" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing Stripe signature" },
+      { status: 400 }
+    );
   }
 
   let event: Stripe.Event;
@@ -22,7 +31,10 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch {
-    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid webhook signature" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -37,9 +49,9 @@ export async function POST(req: Request) {
           break;
         }
 
-        const stripeSubscription = (await stripe.subscriptions.retrieve(
+        const stripeSubscription = await stripe.subscriptions.retrieve(
           session.subscription as string
-        )) as any;
+        );
 
         const plan = await prisma.subscriptionPlan.findFirst({
           where: { code: "starter" },
@@ -48,6 +60,15 @@ export async function POST(req: Request) {
         if (!plan) {
           throw new Error("Starter plan not found");
         }
+
+        const startDate = stripeDate(
+          (stripeSubscription as any).current_period_start,
+          new Date()
+        )!;
+
+        const endDate = stripeDate(
+          (stripeSubscription as any).current_period_end
+        );
 
         await prisma.organizationSubscription.upsert({
           where: {
@@ -58,9 +79,11 @@ export async function POST(req: Request) {
             billingCycle,
             stripeCustomerId: String(session.customer),
             stripeCheckoutSessionId: session.id,
-            startDate: new Date(stripeSubscription.current_period_start * 1000),
-            endDate: new Date(stripeSubscription.current_period_end * 1000),
-            cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+            startDate,
+            endDate,
+            cancelAtPeriodEnd: Boolean(
+              stripeSubscription.cancel_at_period_end
+            ),
           },
           create: {
             organizationId: BigInt(organizationId),
@@ -70,9 +93,11 @@ export async function POST(req: Request) {
             stripeCustomerId: String(session.customer),
             stripeSubscriptionId: stripeSubscription.id,
             stripeCheckoutSessionId: session.id,
-            startDate: new Date(stripeSubscription.current_period_start * 1000),
-            endDate: new Date(stripeSubscription.current_period_end * 1000),
-            cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+            startDate,
+            endDate,
+            cancelAtPeriodEnd: Boolean(
+              stripeSubscription.cancel_at_period_end
+            ),
           },
         });
 
@@ -94,17 +119,24 @@ export async function POST(req: Request) {
 
         if (!subscriptionId) break;
 
-        const stripeSubscription = (await stripe.subscriptions.retrieve(
+        const stripeSubscription = await stripe.subscriptions.retrieve(
           subscriptionId
-        )) as any;
+        );
 
         await prisma.organizationSubscription.updateMany({
           where: { stripeSubscriptionId: subscriptionId },
           data: {
             status: stripeSubscription.status,
-            startDate: new Date(stripeSubscription.current_period_start * 1000),
-            endDate: new Date(stripeSubscription.current_period_end * 1000),
-            cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+            startDate: stripeDate(
+              (stripeSubscription as any).current_period_start,
+              new Date()
+            )!,
+            endDate: stripeDate(
+              (stripeSubscription as any).current_period_end
+            ),
+            cancelAtPeriodEnd: Boolean(
+              stripeSubscription.cancel_at_period_end
+            ),
           },
         });
 
@@ -136,9 +168,7 @@ export async function POST(req: Request) {
           where: { stripeSubscriptionId: subscription.id },
           data: {
             status: "canceled",
-            endDate: subscription.ended_at
-              ? new Date(subscription.ended_at * 1000)
-              : new Date(),
+            endDate: stripeDate(subscription.ended_at, new Date()),
             cancelAtPeriodEnd: false,
           },
         });
@@ -150,6 +180,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Stripe webhook error:", error);
-    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Webhook handler failed" },
+      { status: 500 }
+    );
   }
 }
