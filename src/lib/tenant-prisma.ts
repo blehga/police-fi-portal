@@ -3,14 +3,31 @@ import { PrismaClient } from "../generated/prisma/client";
 const tenantClients = new Map<string, PrismaClient>();
 
 function getTenantDatabaseUrl(databaseName: string) {
-  const host = process.env.MYSQL_TENANT_HOST ?? "127.0.0.1";
-  const port = process.env.MYSQL_TENANT_PORT ?? "3306";
-  const user = process.env.MYSQL_TENANT_USER ?? "fiuser";
-  const password = process.env.MYSQL_TENANT_PASSWORD ?? "mypassword";
+  const {
+    MYSQL_TENANT_HOST,
+    MYSQL_TENANT_PORT,
+    MYSQL_TENANT_USER,
+    MYSQL_TENANT_PASSWORD,
+  } = process.env;
 
-  return `mysql://${user}:${password}@${host}:${port}/${databaseName}`;
+  if (!MYSQL_TENANT_HOST) {
+    throw new Error("MYSQL_TENANT_HOST missing");
+  }
+
+  if (!MYSQL_TENANT_PORT) {
+    throw new Error("MYSQL_TENANT_PORT missing");
+  }
+
+  if (!MYSQL_TENANT_USER) {
+    throw new Error("MYSQL_TENANT_USER missing");
+  }
+
+  if (!MYSQL_TENANT_PASSWORD) {
+    throw new Error("MYSQL_TENANT_PASSWORD missing");
+  }
+
+  return `mysql://${MYSQL_TENANT_USER}:${MYSQL_TENANT_PASSWORD}@${MYSQL_TENANT_HOST}:${MYSQL_TENANT_PORT}/${databaseName}`;
 }
-
 export function getTenantPrisma(databaseName: string) {
   if (!tenantClients.has(databaseName)) {
     tenantClients.set(
