@@ -2,6 +2,7 @@ import { PrismaClient } from "../src/generated/platform-client/index.js";
 import { exec } from "child_process";
 import { promisify } from "util";
 import mysql from "mysql2/promise";
+import crypto from "crypto";
 
 const execAsync = promisify(exec);
 const prisma = new PrismaClient();
@@ -39,6 +40,8 @@ async function processOneJob() {
     data: { status: "processing" },
   });
 
+  let tenantDb: mysql.Connection | null = null;
+
   try {
     const tenantUser = requiredEnv("MYSQL_TENANT_USER");
     const tenantPassword = requiredEnv("MYSQL_TENANT_PASSWORD");
@@ -66,7 +69,7 @@ async function processOneJob() {
 
     console.log("Creating tenant admin user:", job.email);
 
-    const tenantDb = await mysql.createConnection({
+    tenantDb = await mysql.createConnection({
       host: tenantHost,
       port: Number(tenantPort),
       user: tenantUser,
@@ -81,7 +84,7 @@ async function processOneJob() {
       [username, username]
     );
 
-    let userId: number;
+    let userId: string;
 
     if (existingUsers.length) {
       userId = existingUsers[0].id;
@@ -100,9 +103,12 @@ async function processOneJob() {
         [username, username, job.passwordHash, userId]
       );
     } else {
-      const [userInsert]: any = await tenantDb.query(
+      userId = crypto.randomUUID();
+
+      await tenantDb.query(
         `
         INSERT INTO user (
+          id,
           username,
           email,
           passwordHash,
@@ -111,36 +117,36 @@ async function processOneJob() {
           createdAt,
           updatedAt
         )
-        VALUES (?, ?, ?, 1, 1, NOW(), NOW())
+        VALUES (?, ?, ?, ?, 1, 1, NOW(), NOW())
         `,
-        [username, username, job.passwordHash]
+        [userId, username, username, job.passwordHash]
       );
-
-      userId = userInsert.insertId;
     }
 
     const [roleRows]: any = await tenantDb.query(
       `SELECT id FROM role WHERE name = 'Admin' LIMIT 1`
     );
 
-    let adminRoleId: number;
+    let adminRoleId: string;
 
     if (roleRows.length) {
       adminRoleId = roleRows[0].id;
     } else {
-      const [roleInsert]: any = await tenantDb.query(
+      adminRoleId = crypto.randomUUID();
+
+      await tenantDb.query(
         `
         INSERT INTO role (
+          id,
           name,
           description,
           createdAt,
           updatedAt
         )
-        VALUES ('Admin', 'System Administrator', NOW(), NOW())
-        `
+        VALUES (?, 'Admin', 'System Administrator', NOW(), NOW())
+        `,
+        [adminRoleId]
       );
-
-      adminRoleId = roleInsert.insertId;
     }
 
     await tenantDb.query(
@@ -155,9 +161,15 @@ async function processOneJob() {
     );
 
     await tenantDb.end();
+    tenantDb = null;
 
     await prisma.organization.update({
       where: { id: job.organizationId },
+      data: { status: "active" },
+    });
+
+    await prisma.organizationDatabase.updateMany({
+      where: { organizationId: job.organizationId },
       data: { status: "active" },
     });
 
@@ -171,6 +183,10 @@ async function processOneJob() {
 
     console.log("Completed job:", job.id.toString());
   } catch (err) {
+    if (tenantDb) {
+      await tenantDb.end().catch(() => {});
+    }
+
     console.error("Provisioning failed:", err);
 
     await prisma.provisioningJob.update({
