@@ -28,14 +28,24 @@ async function processOneJob() {
     data: { status: "processing" },
   });
 
-  try {
+   try {
     const tenantUrl = `mysql://${process.env.MYSQL_TENANT_USER}:${process.env.MYSQL_TENANT_PASSWORD}@${process.env.MYSQL_TENANT_HOST}:${process.env.MYSQL_TENANT_PORT}/${job.databaseName}`;
 
+    const tenantEnv = {
+      ...process.env,
+      DATABASE_URL: tenantUrl,
+    };
+
+    console.log("Pushing tenant schema:", job.databaseName);
+
     await execAsync("npx prisma db push --schema=prisma/schema.prisma", {
-      env: {
-        ...process.env,
-        DATABASE_URL: tenantUrl,
-      },
+      env: tenantEnv,
+    });
+
+    console.log("Seeding tenant database:", job.databaseName);
+
+    await execAsync("npm run prisma:seed", {
+      env: tenantEnv,
     });
 
     await prisma.organization.update({
